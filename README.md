@@ -12,7 +12,7 @@ FaaSr Blocks enables users to generate and manage a library of reusable workflow
 
 ## Repository Structure
 
-```
+```plaintext
 faasr-blocks/
 ├── blocks/                      # Library of validated blocks
 │   └── <BlockName>/
@@ -39,6 +39,7 @@ faasr-blocks/
 ### Pure, Reusable Blocks
 
 Blocks are designed to be:
+
 - **Pure**: Given the same preconditions, produce the same outputs
 - **Idempotent**: Safe to re-run without side effects
 - **Workflow-agnostic**: Can be used in any compatible workflow
@@ -47,6 +48,7 @@ Blocks are designed to be:
 ### Contract-First Design
 
 Before any code is written:
+
 1. The contract specifies exactly what the block does
 2. Tests validate the contract is fulfilled
 3. Implementation is treated as a black box
@@ -54,6 +56,7 @@ Before any code is written:
 ### Block Discovery & Reuse
 
 Once validated and committed, blocks can be:
+
 - Discovered through semantic search
 - Reused as-is in new workflows
 - Adapted to create similar blocks
@@ -62,12 +65,12 @@ Once validated and committed, blocks can be:
 
 The `reference/` directory contains embedded documentation from the FaaSr framework:
 
-- **`reference/faasr-docs/`**: Official documentation (subtree from https://github.com/FaaSr/faasr.github.io)
+- **`reference/faasr-docs/`**: Official documentation (subtree from <https://github.com/FaaSr/faasr.github.io>)
   - API references for `faasr_get_file()`, `faasr_put_file()`, `faasr_log()`, `faasr_secret()`, etc.
   - Tutorial and programming model guides
   - Conditional branching and secrets management
 
-- **`reference/faasr-functions/`**: Real-world example workflows (subtree from https://github.com/FaaSr/FaaSr-Functions)
+- **`reference/faasr-functions/`**: Real-world example workflows (subtree from <https://github.com/FaaSr/FaaSr-Functions>)
   - Tutorial examples with Python and R implementations
   - Weather data processing pipelines
   - API integration patterns
@@ -93,8 +96,6 @@ pip install -e .
 ```
 
 ### Using the Framework
-
-_Coming in Phase 2: Interactive CLI for block generation_
 
 ## Development Status
 
