@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://faasr.io/schemas/faasr-block-contract.json",
+  "title": "FaaSr Block Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "block_name",
+    "version",
+    "function",
+    "s3_outputs",
+    "required_secrets",
+    "preconditions",
+    "postconditions",
+    "methodology",
+    "conditional_return",
+    "metadata",
+    "dependencies"
+  ],
+  "properties": {
+    "block_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PascalCase block identifier"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version"
+    },
+    "function": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "arguments", "return_type"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "description"],
+            "properties": {
+              "type": { "type": "string", "minLength": 1 },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "return_type": {
+          "type": "string",
+          "enum": ["None", "bool"]
+        }
+      }
+    },
+    "s3_outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["filename", "format", "description"],
+        "properties": {
+          "filename": { "type": "string", "minLength": 1 },
+          "format": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "required_secrets": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "preconditions": { "type": "string" },
+    "postconditions": { "type": "string" },
+    "methodology": { "type": "string" },
+    "conditional_return": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["description", "true_condition", "false_condition"],
+          "properties": {
+            "description": { "type": "string" },
+            "true_condition": { "type": "string" },
+            "false_condition": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "data_type", "methodology_category", "tags"],
+      "properties": {
+        "role": { "type": "string", "minLength": 1 },
+        "data_type": { "type": "string", "minLength": 1 },
+        "methodology_category": { "type": "string", "minLength": 1 },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python_packages"],
+      "properties": {
+        "python_packages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "version"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "version": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

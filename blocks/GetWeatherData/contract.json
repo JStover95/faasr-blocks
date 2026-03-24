@@ -1,0 +1,53 @@
+{
+  "block_name": "GetWeatherData",
+  "version": "1.0.0",
+  "function": {
+    "name": "get_weather_data",
+    "arguments": {
+      "folder_name": {
+        "type": "str",
+        "description": "S3 remote folder (prefix) for uploaded forecast JSON"
+      },
+      "output_name": {
+        "type": "str",
+        "description": "Local and remote filename for the forecast JSON artifact"
+      },
+      "lat": {
+        "type": "str",
+        "description": "Latitude coordinate for OpenWeather forecast request"
+      },
+      "lon": {
+        "type": "str",
+        "description": "Longitude coordinate for OpenWeather forecast request"
+      },
+      "location_name": {
+        "type": "str",
+        "description": "Human-readable location label for logging"
+      }
+    },
+    "return_type": "None"
+  },
+  "s3_outputs": [
+    {
+      "filename": "Caller-provided via argument output_name (e.g. raw_weather_data.json)",
+      "format": "JSON",
+      "description": "OpenWeather 5-day / 3-hour forecast JSON uploaded with faasr_put_file"
+    }
+  ],
+  "required_secrets": ["OPENWEATHER_API_KEY"],
+  "preconditions": "Secret OPENWEATHER_API_KEY is available at runtime via faasr_secret.",
+  "postconditions": "A JSON file named output_name is written locally then uploaded to folder_name/output_name in the configured data store.",
+  "methodology": "HTTP GET to OpenWeather 2.5 forecast API using lat, lon, and API key; response saved and uploaded with FaaSr S3 API.",
+  "conditional_return": null,
+  "metadata": {
+    "role": "fetch_data",
+    "data_type": "weather",
+    "methodology_category": "api_call",
+    "tags": ["weather", "api", "forecast", "openweather"]
+  },
+  "dependencies": {
+    "python_packages": [
+      { "name": "requests", "version": ">=2.31.0" }
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "city": {
+    "name": "Corvallis",
+    "country": "US",
+    "coord": { "lat": 44.5646, "lon": -123.262 }
+  },
+  "list": [
+    {
+      "dt_txt": "2024-01-01 00:00:00",
+      "main": { "temp": 10.5, "feels_like": 9.0, "humidity": 80, "pressure": 1013 },
+      "wind": { "speed": 2.1 },
+      "pop": 0.1,
+      "weather": [{ "description": "light rain" }]
+    },
+    {
+      "dt_txt": "2024-01-01 03:00:00",
+      "main": { "temp": 11.0, "feels_like": 10.0, "humidity": 78, "pressure": 1012 },
+      "wind": { "speed": 1.8 },
+      "pop": 0.05,
+      "weather": [{ "description": "clear sky" }]
+    }
+  ]
+}
