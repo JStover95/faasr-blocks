@@ -34,7 +34,9 @@
       "description": "OpenWeather 5-day / 3-hour forecast JSON uploaded with faasr_put_file"
     }
   ],
-  "required_secrets": ["OPENWEATHER_API_KEY"],
+  "required_secrets": [
+    "OPENWEATHER_API_KEY"
+  ],
   "preconditions": "Secret OPENWEATHER_API_KEY is available at runtime via faasr_secret.",
   "postconditions": "A JSON file named output_name is written locally then uploaded to folder_name/output_name in the configured data store.",
   "methodology": "HTTP GET to OpenWeather 2.5 forecast API using lat, lon, and API key; response saved and uploaded with FaaSr S3 API.",
@@ -43,7 +45,12 @@
     "role": "fetch_data",
     "data_type": "weather",
     "methodology_category": "api_call",
-    "tags": ["weather", "api", "forecast", "openweather"]
+    "tags": [
+      "weather",
+      "api",
+      "forecast",
+      "openweather"
+    ]
   },
   "dependencies": {
     "python_packages": [

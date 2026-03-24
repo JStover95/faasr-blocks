@@ -1,23 +1,60 @@
 {
   "city": {
     "name": "Corvallis",
-    "country": "US",
-    "coord": { "lat": 44.5646, "lon": -123.262 }
+    "coord": {
+      "lat": 44.5646,
+      "lon": -123.2620
+    },
+    "country": "US"
   },
   "list": [
     {
-      "dt_txt": "2024-01-01 00:00:00",
-      "main": { "temp": 10.5, "feels_like": 9.0, "humidity": 80, "pressure": 1013 },
-      "wind": { "speed": 2.1 },
-      "pop": 0.1,
-      "weather": [{ "description": "light rain" }]
+      "dt": 1609459200,
+      "main": {
+        "temp": 280.32,
+        "feels_like": 278.45,
+        "temp_min": 279.15,
+        "temp_max": 281.15,
+        "pressure": 1012,
+        "humidity": 81
+      },
+      "weather": [
+        {
+          "id": 801,
+          "main": "Clouds",
+          "description": "few clouds",
+          "icon": "02d"
+        }
+      ],
+      "wind": {
+        "speed": 1.5,
+        "deg": 350
+      },
+      "dt_txt": "2021-01-01 00:00:00"
     },
     {
-      "dt_txt": "2024-01-01 03:00:00",
-      "main": { "temp": 11.0, "feels_like": 10.0, "humidity": 78, "pressure": 1012 },
-      "wind": { "speed": 1.8 },
-      "pop": 0.05,
-      "weather": [{ "description": "clear sky" }]
+      "dt": 1609462800,
+      "main": {
+        "temp": 281.32,
+        "feels_like": 279.45,
+        "temp_min": 280.15,
+        "temp_max": 282.15,
+        "pressure": 1012,
+        "humidity": 80
+      },
+      "weather": [
+        {
+          "id": 802,
+          "main": "Clouds",
+          "description": "scattered clouds",
+          "icon": "03d"
+        }
+      ],
+      "wind": {
+        "speed": 1.5,
+        "deg": 350
+      },
+      "dt_txt": "2021-01-01 03:00:00"
     }
   ]
 }

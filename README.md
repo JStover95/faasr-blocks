@@ -102,9 +102,25 @@ pip install -e .
 This is a proof-of-concept implementation focused on:
 
 - **Phase 1 (Complete)**: Foundation - contracts, test harness, validation
-- **Phase 2 (Planned)**: Block builder subagent - automated test and code generation
+- **Phase 2 (Complete)**: Block builder - LLM-backed test and source generation, static checks, pytest loop
 - **Phase 3 (Planned)**: Embedding & discovery - semantic search for block reuse
 - **Phase 4 (Planned)**: Main agent & CLI - natural language interface
+
+### Phase 2: Building a block from a contract
+
+Requires `OPENAI_API_KEY` (OpenAI-compatible Chat Completions). Optional: `OPENAI_BASE_URL`, `OPENAI_MODEL`.
+
+```bash
+cd faasr-blocks
+uv pip install -e .
+export OPENAI_API_KEY=...
+faasr-blocks-build blocks/GetWeatherData/contract.json
+# or: python -m faasr_blocks.builder.cli blocks/GetWeatherData/contract.json
+```
+
+The builder writes `contract.json` into `blocks/<BlockName>/`, generates `tests/` then `src/`, validates tests against the contract (LLM), runs static validation and `pytest`, and retries implementation up to three times on failures.
+
+**Manual check:** With a valid API key, run the command above on a copy of a block directory (or after moving aside `src/` and `tests/`) to confirm end-to-end generation.
 
 ## Testing
 
