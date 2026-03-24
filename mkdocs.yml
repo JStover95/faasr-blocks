@@ -1,0 +1,41 @@
+site_name: FaaSr - Serverless workflows made easy
+site_url: https://faasr.io
+theme:
+  name: material
+  logo: assets/faasr_logo.jpg
+  features:
+    - navigation.tabs
+nav:
+  - 'Home': 'index.md'
+  - 'Tutorial': 'tutorial.md'
+  - 'User Documentation':
+    - 'FaaSr workflow model': 'prog_model.md'
+    - 'Setting up the FaaSr-workflow repo': 'workflow_repo.md'
+    - 'Creating functions': 'functions.md'
+    - 'Creating and editing workflows': 'workflows.md'
+    - 'Example workflows and functions': 'functionexamples.md'
+    - 'Registering workflows': 'register_workflow.md'
+    - 'Invoking workflows': 'invoke_workflow.md'
+    - 'Retrieving logs': 'logs.md'
+    - 'Obtaining an S3 bucket': 's3.md'
+    - 'Concurrent actions and ranks': 'rank.md'
+    - 'Conditional invocation': 'conditional.md'
+    - 'Invocation IDs': 'invocationid.md'
+    - 'Package dependences': 'dependences.md'
+    - 'R API reference': 'r_api.md'
+    - 'Python API reference': 'py_api.md'
+    - 'Creating cloud credentials': 'credentials.md'
+    - 'Default values': 'defaults.md'
+    - 'Advanced usage': 'advanced.md'
+    - 'Security best practices': 'security.md'
+  - 'Dev Documentation':
+    - 'PR Processes': 'pull_requests.md'
+    - 'Building containers': 'docker_build.md'
+  - 'About': 'about.md'
+  - 'Community': 'community.md'
+  - 'Contact': 'contact.md'
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+copyright: FaaSr is funded in part by grants from the National Science Foundation (OAC-2450241 and OAC-2311124). Any opinions, findings, and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the National Science Foundation.
