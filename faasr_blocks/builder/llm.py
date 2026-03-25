@@ -2,11 +2,13 @@
 
 This module provides an LLMClient protocol and implementations for calling chat completion APIs
 to generate tests and source code. The protocol allows for dependency injection and mock testing.
+
+OpenAIChatLLM expects ``api_key``, ``base_url``, and ``model`` from the caller (e.g. after
+:func:`faasr_blocks.builder.config.load_llm_env_config`).
 """
 
 from __future__ import annotations
 
-import os
 from typing import Protocol, runtime_checkable
 
 import httpx
@@ -43,44 +45,36 @@ class OpenAIChatLLM:
 
     Uses httpx to call the /chat/completions endpoint. Supports OpenAI and compatible providers.
 
-    Environment variables:
-        OPENAI_API_KEY: Required. API authentication key.
-        OPENAI_BASE_URL: Optional. API base URL (default: https://api.openai.com/v1).
-        OPENAI_MODEL: Optional. Model name (default: gpt-4o-mini).
+    The caller must supply ``api_key``, ``base_url``, and ``model`` (e.g. from
+    :func:`faasr_blocks.builder.config.load_llm_env_config`).
 
     Example:
-        >>> llm = OpenAIChatLLM()
+        >>> llm = OpenAIChatLLM(api_key="...", base_url="https://api.openai.com/v1", model="gpt-4o-mini")
         >>> response = llm.complete("You are helpful.", "What is 2+2?")
     """
 
     def __init__(
         self,
-        api_key: str | None = None,
-        base_url: str | None = None,
-        model: str | None = None,
+        api_key: str,
+        base_url: str,
+        model: str,
         timeout_s: float = 120.0,
     ) -> None:
         """
         Initialize the chat client.
 
         Args:
-            api_key: API key (defaults to OPENAI_API_KEY env var).
-            base_url: API base URL (defaults to OPENAI_BASE_URL or https://api.openai.com/v1).
-            model: Model name (defaults to OPENAI_MODEL or gpt-4o-mini).
+            api_key: API authentication key.
+            base_url: API base URL (no trailing slash required).
+            model: Model name for chat completions.
             timeout_s: Request timeout in seconds.
         """
-        self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
-        self._base = (
-            base_url or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
-        ).rstrip("/")
-        self._model = model or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+        self._api_key = api_key
+        self._base = base_url.rstrip("/")
+        self._model = model
         self._timeout = timeout_s
 
     def complete(self, system_prompt: str, user_prompt: str) -> str:
-        if not self._api_key:
-            raise RuntimeError(
-                "OPENAI_API_KEY is not set. Export it or pass api_key= to OpenAIChatLLM."
-            )
         url = f"{self._base}/chat/completions"
         payload = {
             "model": self._model,

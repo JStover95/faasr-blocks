@@ -108,19 +108,21 @@ This is a proof-of-concept implementation focused on:
 
 ### Phase 2: Building a block from a contract
 
-Requires `OPENAI_API_KEY` (OpenAI-compatible Chat Completions). Optional: `OPENAI_BASE_URL`, `OPENAI_MODEL`.
+Requires these environment variables (OpenAI-compatible Chat Completions): `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL`.
 
 ```bash
 cd faasr-blocks
 uv pip install -e .
 export OPENAI_API_KEY=...
-faasr-blocks-build blocks/GetWeatherData/contract.json
-# or: python -m faasr_blocks.builder.cli blocks/GetWeatherData/contract.json
+export OPENAI_BASE_URL=https://api.openai.com/v1
+export OPENAI_MODEL=gpt-4o-mini
+faasr-blocks-build blocks/GetWeatherData
+# or: python -m faasr_blocks.builder.cli blocks/GetWeatherData
 ```
 
-The builder writes `contract.json` into `blocks/<BlockName>/`, generates `tests/` then `src/`, validates tests against the contract (LLM), runs static validation and `pytest`, and retries implementation up to three times on failures.
+The block directory must already exist and contain `contract.json`. The builder validates it against the schema, generates `tests/` then `src/`, validates tests against the contract (LLM), runs static validation and `pytest`, and retries implementation up to three times on failures.
 
-**Manual check:** With a valid API key, run the command above on a copy of a block directory (or after moving aside `src/` and `tests/`) to confirm end-to-end generation.
+**Manual check:** With valid API settings, run the command above on a copy of a block directory (or after moving aside `src/` and `tests/`) to confirm end-to-end generation.
 
 ## Testing
 
