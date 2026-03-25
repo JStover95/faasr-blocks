@@ -1,4 +1,9 @@
-"""Run pytest for a block from the repository root."""
+"""Run pytest for a block from the repository root.
+
+This module executes pytest on a block's test directory in a subprocess, capturing output
+and parsing results. It ensures the repository root is on PYTHONPATH so tests can import
+blocks using the blocks.BlockName.src.module_name pattern.
+"""
 
 from __future__ import annotations
 
@@ -13,9 +18,24 @@ from faasr_blocks.builder.models import TestResult
 
 
 class TestRunner:
-    """Execute pytest on ``block_path / \"tests\"`` with repo root on PYTHONPATH."""
+    """
+    Execute pytest on a block's test directory and capture results.
+
+    Runs pytest as a subprocess from the repository root with PYTHONPATH configured
+    to allow block imports (e.g., blocks.GetWeatherData.src.get_weather_data).
+    """
 
     def run_tests(self, block_path: Path, repo_root: Path) -> TestResult:
+        """
+        Run pytest on block_path/tests/ and return structured results.
+
+        Args:
+            block_path: Path to the block directory (e.g., blocks/GetWeatherData).
+            repo_root: Repository root to use as cwd and add to PYTHONPATH.
+
+        Returns:
+            TestResult with pass/fail status, exit code, captured output, and summary line.
+        """
         tests_dir = block_path / "tests"
         if not tests_dir.is_dir():
             return TestResult(
@@ -65,7 +85,18 @@ class TestRunner:
 
 
 def _extract_summary(text: str) -> str:
-    # pytest ends with e.g. "5 passed in 0.12s" or "1 failed, 2 passed"
+    """
+    Extract pytest's summary line from combined stdout/stderr.
+
+    Looks for lines containing pytest result keywords (passed, failed, error, warnings)
+    in the last ~8 lines of output.
+
+    Args:
+        text: Combined pytest stdout and stderr.
+
+    Returns:
+        Summary line (e.g., "5 passed in 0.12s") or empty string if not found.
+    """
     lines = [ln.strip() for ln in text.strip().splitlines() if ln.strip()]
     for ln in reversed(lines[-8:]):
         if re.search(r"\b(passed|failed|error|warnings?)\b", ln, re.I):

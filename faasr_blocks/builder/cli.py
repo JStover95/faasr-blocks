@@ -1,4 +1,17 @@
-"""CLI for building a block from ``contract.json`` (Phase 2 PoC)."""
+"""CLI for building a block from contract.json (Phase 2 PoC).
+
+Command-line interface for the block builder. Takes a contract.json path and generates
+a complete block with tests and implementation using an OpenAI-compatible LLM.
+
+Usage:
+    faasr-blocks-build path/to/contract.json
+
+Environment:
+    OPENAI_API_KEY: Required. API key for LLM access.
+    OPENAI_BASE_URL: Optional. API endpoint (default: https://api.openai.com/v1).
+    OPENAI_MODEL: Optional. Model name (default: gpt-4o-mini).
+    FAASR_BLOCKS_DEBUG: Optional. Set to "1" for verbose debug output.
+"""
 
 from __future__ import annotations
 
@@ -13,12 +26,30 @@ from faasr_blocks.models.contract import Contract
 
 
 def _package_repo_root() -> Path:
+    """
+    Find the repository root by locating the installed faasr_blocks package.
+
+    Returns:
+        Path to the parent directory of the faasr_blocks package (the repo root).
+    """
     import faasr_blocks
 
     return Path(faasr_blocks.__file__).resolve().parent.parent
 
 
 def main(argv: list[str] | None = None) -> int:
+    """
+    CLI entry point for faasr-blocks-build command.
+
+    Parses arguments, loads the contract, initializes the LLM client, and invokes BlockBuilder.
+    Displays progress and results to stdout/stderr.
+
+    Args:
+        argv: Command-line arguments (defaults to sys.argv if None).
+
+    Returns:
+        Exit code: 0 on success, 1 on build failure, 2 on usage/setup errors.
+    """
     parser = argparse.ArgumentParser(
         description="Generate tests and source for a FaaSr block from contract.json (requires OPENAI_API_KEY).",
     )

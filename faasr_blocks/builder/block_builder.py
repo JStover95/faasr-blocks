@@ -19,10 +19,19 @@ from faasr_blocks.validation.contract_validator import ContractValidator
 
 def _pytest_remediation_hints(stdout: str) -> str:
     """
-    If pytest output matches known failure modes, add explicit instructions for the LLM.
+    Detect known pytest failure patterns and return explicit fix instructions for the LLM.
 
-    Common case: tests mock ``requests.Response`` with ``mock_resp.json.return_value = {...}`` but
-    implementation uses ``response.text``; ``MagicMock.text`` is not a ``str`` for ``file.write``.
+    This heuristic checks for common mock misalignment issues and provides targeted guidance
+    to help the source generator fix them on the next iteration.
+
+    Common case: tests mock requests.Response with mock_resp.json.return_value = {...} but
+    implementation uses response.text; MagicMock.text is not a str for file.write().
+
+    Args:
+        stdout: Pytest stdout output containing failure messages.
+
+    Returns:
+        Additional instructions string to append to extra_instructions, or empty string if no hints.
     """
     if not stdout:
         return ""
@@ -42,7 +51,18 @@ def _pytest_remediation_hints(stdout: str) -> str:
 
 
 def _debug_src_hints(src_file: Path, max_lines: int = 80) -> None:
-    """Print lines that show how HTTP / FaaSr APIs are used (mock mismatch diagnosis)."""
+    """
+    Print relevant source code lines when debug mode is enabled.
+
+    Extracts and displays lines containing keywords like 'requests', 'response.', '.text',
+    'faasr_', 'open(' to help diagnose mock alignment issues between tests and implementation.
+
+    Only prints when FAASR_BLOCKS_DEBUG=1.
+
+    Args:
+        src_file: Path to the source file to inspect.
+        max_lines: Maximum number of matching lines to print.
+    """
     if not debug_enabled() or not src_file.is_file():
         return
     text = src_file.read_text(encoding="utf-8", errors="replace")
@@ -61,7 +81,20 @@ def _debug_src_hints(src_file: Path, max_lines: int = 80) -> None:
 
 
 class BlockBuilder:
-    """Build ``blocks/<BlockName>/`` from a :class:`Contract` using an :class:`LLMClient`."""
+    """
+    Build a complete FaaSr block from a contract specification.
+
+    The builder orchestrates the full pipeline:
+    1. Writes contract.json to the block directory
+    2. Validates contract against JSON schema
+    3. Generates pytest tests from contract (with optional retry)
+    4. Validates test coverage against contract
+    5. Generates source implementation from contract + tests
+    6. Iterates: static validation → pytest → regenerate source (up to max_source_iterations)
+    7. Validates final block structure
+
+    If pytest fails, the builder feeds error messages back to the source generator for fixes.
+    """
 
     def __init__(
         self,
@@ -70,6 +103,15 @@ class BlockBuilder:
         max_source_iterations: int = 3,
         retry_tests_once: bool = True,
     ) -> None:
+        """
+        Initialize the block builder.
+
+        Args:
+            llm: LLM client for generating tests and source code.
+            schema_path: Optional path to contract_schema.json (auto-detects <repo>/schema/ if None).
+            max_source_iterations: Maximum loops for source generation (static validation + pytest).
+            retry_tests_once: If True, retry test generation once on coverage validation failure.
+        """
         self._llm = llm
         self._schema_path = schema_path
         self._max_source_iterations = max_source_iterations
@@ -81,6 +123,28 @@ class BlockBuilder:
         blocks_root: Path,
         repo_root: Path | None = None,
     ) -> BuildResult:
+        """
+        Build a block from contract: generate tests, source, validate, and run pytest.
+
+        Creates blocks_root/<BlockName>/ with:
+        - contract.json
+        - tests/test_<function>.py + fixtures/
+        - src/<function>.py
+
+        The build process loops up to max_source_iterations times, regenerating source code
+        when static validation or pytest fails. Each iteration includes:
+        - Static validation (function signature, FaaSr API calls)
+        - Pytest execution
+        - Feedback to source generator with error details
+
+        Args:
+            contract: Contract specification for the block.
+            blocks_root: Directory containing all block folders (e.g., repo/blocks).
+            repo_root: Repository root (defaults to blocks_root parent).
+
+        Returns:
+            BuildResult with success status, paths, attempt count, and validation/test results.
+        """
         if repo_root is None:
             repo_root = blocks_root.parent
 

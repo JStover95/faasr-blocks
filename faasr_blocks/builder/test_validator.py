@@ -23,10 +23,39 @@ via mocked faasr_put_file when applicable, and for bool return contracts checks 
 
 
 class ContractTestCoverageValidator:
+    """
+    Validate that a pytest file adequately covers a contract's requirements.
+
+    Uses an LLM to analyze the test file and identify gaps in coverage such as:
+    - Missing tests for required secrets
+    - No assertions on S3 outputs (faasr_put_file)
+    - Missing conditional return tests for bool return_type blocks
+    - Uncovered function arguments or edge cases
+    """
+
     def __init__(self, llm: LLMClient) -> None:
+        """
+        Initialize the validator.
+
+        Args:
+            llm: LLM client for analyzing test coverage.
+        """
         self._llm = llm
 
     def validate(self, contract: Contract, test_file: Path) -> ValidationResult:
+        """
+        Check if test_file adequately covers the contract.
+
+        Sends the contract and test source to the LLM, which returns a JSON response
+        indicating whether coverage is adequate and listing any gaps.
+
+        Args:
+            contract: Contract specification with expected coverage.
+            test_file: Path to the generated test file to validate.
+
+        Returns:
+            ValidationResult with ok=True if adequate, or ok=False with gap descriptions.
+        """
         if not test_file.is_file():
             return ValidationResult.failure([f"Test file not found: {test_file}"])
         test_src = test_file.read_text(encoding="utf-8")
@@ -60,6 +89,15 @@ Test file path: {test_file.name}
 
 
 def _strip_json_fence(text: str) -> str:
+    """
+    Remove markdown json fence from LLM response if present.
+
+    Args:
+        text: LLM response text, possibly wrapped in ```json ... ```.
+
+    Returns:
+        Inner JSON text with fences removed, or original text if no fences found.
+    """
     text = text.strip()
     m = re.match(r"^```(?:json)?\s*(.*?)\s*```$", text, re.DOTALL)
     if m:

@@ -32,7 +32,24 @@ Requirements:
 
 
 class TestGenerator:
+    """
+    Generate pytest test files from a contract using an LLM.
+
+    The generator creates comprehensive test coverage including:
+    - Happy path tests with all contract arguments
+    - Secret access tests (mock env.secret.with_secret)
+    - S3 output validation (assert env.put_file.uploaded_files)
+    - Conditional return tests for bool return_type blocks
+    - Fixture files for test data
+    """
+
     def __init__(self, llm: LLMClient) -> None:
+        """
+        Initialize the test generator.
+
+        Args:
+            llm: LLM client for generating test code.
+        """
         self._llm = llm
 
     def generate(
@@ -42,6 +59,19 @@ class TestGenerator:
         repo_root: Path,
         extra_instructions: str = "",
     ) -> None:
+        """
+        Generate pytest tests for the block and write to block_path/tests/.
+
+        Creates tests/test_<function_name>.py and any necessary fixture files under
+        tests/fixtures/. The LLM prompt includes the contract, reference documentation,
+        and example tests for pattern matching.
+
+        Args:
+            contract: Contract specification to generate tests for.
+            block_path: Path to the block directory (e.g., blocks/GetWeatherData).
+            repo_root: Repository root for loading reference materials.
+            extra_instructions: Optional additional requirements (e.g., from retry failures).
+        """
         fn = contract.function.name
         block_name = contract.block_name
         module_name = fn  # convention: get_weather_data.py

@@ -37,7 +37,23 @@ Either a single ```python fenced block with the full module, OR marked files:
 
 
 class SourceCodeGenerator:
+    """
+    Generate block implementation from contract and tests using an LLM.
+
+    The generator creates Python source code that:
+    - Matches the contract's function signature exactly
+    - Uses only documented FaaSr APIs
+    - Passes the generated tests
+    - Follows FaaSr patterns from reference examples
+    """
+
     def __init__(self, llm: LLMClient) -> None:
+        """
+        Initialize the source code generator.
+
+        Args:
+            llm: LLM client for generating implementation code.
+        """
         self._llm = llm
 
     def generate(
@@ -48,6 +64,20 @@ class SourceCodeGenerator:
         test_source: str,
         extra_instructions: str = "",
     ) -> None:
+        """
+        Generate implementation and write to block_path/src/<function_name>.py.
+
+        The LLM prompt includes the contract, generated tests, reference documentation,
+        and tutorial examples. If extra_instructions is provided (e.g., from pytest failures),
+        it's prepended to guide fixes.
+
+        Args:
+            contract: Contract specification defining the function signature and behavior.
+            block_path: Path to the block directory.
+            repo_root: Repository root for loading reference materials.
+            test_source: Content of the generated test file (implementation must pass these).
+            extra_instructions: Optional context from failures (e.g., pytest errors, static validation errors).
+        """
         fn = contract.function.name
         module_file = f"src/{fn}.py"
         snippets = default_snippets(repo_root)

@@ -27,14 +27,28 @@ def _first_fenced_block(after_header: str) -> tuple[str, int] | None:
 
 def parse_marked_files(text: str) -> dict[str, str]:
     """
-    Extract files from assistant output using:
+    Extract multiple files from LLM output using marked headers and fenced code blocks.
+
+    Expected format in the LLM response:
 
         ### FILE: relative/path.ext
         ```python
         ...
         ```
 
-    Returns mapping of normalized relative POSIX path -> file body.
+        ### FILE: another/file.json
+        ```json
+        {...}
+        ```
+
+    Args:
+        text: Full LLM response text.
+
+    Returns:
+        Dictionary mapping normalized relative POSIX paths to file contents.
+
+    Raises:
+        ValueError: If a FILE header is found without a following fenced code block.
     """
     files: dict[str, str] = {}
     for m in _FILE_HEADER.finditer(text):
@@ -49,7 +63,18 @@ def parse_marked_files(text: str) -> dict[str, str]:
 
 
 def extract_single_python_module(text: str) -> str:
-    """If output uses one ```python` fence, return its body; else return stripped text."""
+    """
+    Extract Python code from a single fenced block, or return text as-is if no fence found.
+
+    Fallback parser when the LLM doesn't use marked FILE: headers. Looks for a single
+    ```python or ``` block and extracts its body.
+
+    Args:
+        text: LLM response text.
+
+    Returns:
+        Code body from fenced block if found, otherwise stripped text.
+    """
     m = re.search(r"```(?:python)?\s*\n(.*?)```", text, re.DOTALL)
     if m:
         body = m.group(1)

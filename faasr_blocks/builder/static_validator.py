@@ -21,6 +21,15 @@ _TYPE_ALIASES: dict[str, set[str]] = {
 
 
 def _annotation_string(node: ast.expr | None) -> str | None:
+    """
+    Extract a string representation of a type annotation AST node.
+
+    Args:
+        node: AST node representing a type annotation (Name, Constant, Subscript, Attribute).
+
+    Returns:
+        String form of the annotation (e.g., "str", "dict", "Optional[int]"), or None if unparseable.
+    """
     if node is None:
         return None
     if isinstance(node, ast.Name):
@@ -45,6 +54,15 @@ def _annotation_string(node: ast.expr | None) -> str | None:
 
 
 def _call_name(func: ast.expr) -> str | None:
+    """
+    Extract the function name from a call's func node.
+
+    Args:
+        func: AST expr node (typically ast.Name or ast.Attribute).
+
+    Returns:
+        Function name string, or None if not a simple name/attribute.
+    """
     if isinstance(func, ast.Name):
         return func.id
     if isinstance(func, ast.Attribute):
@@ -53,12 +71,30 @@ def _call_name(func: ast.expr) -> str | None:
 
 
 def _string_arg_value(node: ast.expr) -> str | None:
+    """
+    Extract a string literal value from an AST node.
+
+    Args:
+        node: AST expr node (typically ast.Constant with a str value).
+
+    Returns:
+        The string value if node is a string constant, None otherwise.
+    """
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         return node.value
     return None
 
 
 def _collect_faasr_secret_literals(tree: ast.AST) -> set[str]:
+    """
+    Find all string literals passed to faasr_secret() calls in the AST.
+
+    Args:
+        tree: AST tree to search (typically a function body).
+
+    Returns:
+        Set of secret name strings found in faasr_secret("SECRET_NAME") calls.
+    """
     found: set[str] = set()
     for n in ast.walk(tree):
         if not isinstance(n, ast.Call):
@@ -79,6 +115,15 @@ def _collect_faasr_secret_literals(tree: ast.AST) -> set[str]:
 
 
 def _count_faasr_put_file_calls(tree: ast.AST) -> int:
+    """
+    Count how many times faasr_put_file() is called in the AST.
+
+    Args:
+        tree: AST tree to search.
+
+    Returns:
+        Number of faasr_put_file call sites found.
+    """
     count = 0
     for n in ast.walk(tree):
         if isinstance(n, ast.Call) and _call_name(n.func) == "faasr_put_file":
@@ -87,6 +132,15 @@ def _count_faasr_put_file_calls(tree: ast.AST) -> int:
 
 
 def _has_faasr_return_call(tree: ast.AST) -> bool:
+    """
+    Check if faasr_return() is called anywhere in the AST.
+
+    Args:
+        tree: AST tree to search.
+
+    Returns:
+        True if at least one faasr_return call is found, False otherwise.
+    """
     for n in ast.walk(tree):
         if isinstance(n, ast.Call) and _call_name(n.func) == "faasr_return":
             return True
@@ -94,9 +148,28 @@ def _has_faasr_return_call(tree: ast.AST) -> bool:
 
 
 class StaticValidator:
-    """Validate that ``source_file`` defines a function matching ``contract``."""
+    """
+    Validate that a Python source file's implementation structurally matches a contract.
+
+    This validator performs AST-level checks without executing code:
+    - Function name and parameter list match the contract
+    - Required secrets appear in faasr_secret() calls as string literals
+    - At least one faasr_put_file() call exists when S3 outputs are declared
+    - faasr_return() is called for conditional (bool return_type) blocks
+    - Type hints match contract types (warnings only, not errors)
+    """
 
     def validate(self, contract: Contract, source_file: Path) -> ValidationResult:
+        """
+        Parse source_file and check if it implements the contract's function specification.
+
+        Args:
+            contract: The contract specification to validate against.
+            source_file: Path to the Python source file to validate.
+
+        Returns:
+            ValidationResult with ok=True if all checks pass, or ok=False with detailed errors.
+        """
         errors: list[str] = []
         warnings: list[str] = []
 
