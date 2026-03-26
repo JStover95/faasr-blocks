@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from faasr_blocks.builder.artifact_parse import extract_single_python_module, parse_marked_files
+from faasr_blocks.builder.block_context import BlockContext
 from faasr_blocks.builder.llm import LLMClient
 from faasr_blocks.builder.reference_snippets import default_snippets
-from faasr_blocks.models.contract import Contract
 
 SYSTEM_PROMPT = """You are an expert Python author for FaaSr serverless functions.
 
@@ -47,23 +46,18 @@ class SourceCodeGenerator:
     - Follows FaaSr patterns from reference examples
     """
 
-    def __init__(self, llm: LLMClient) -> None:
+    def __init__(self, llm: LLMClient, context: BlockContext) -> None:
         """
         Initialize the source code generator.
 
         Args:
             llm: LLM client for generating implementation code.
+            context: Block paths, contract, and repo layout.
         """
         self._llm = llm
+        self._context = context
 
-    def generate(
-        self,
-        contract: Contract,
-        block_path: Path,
-        repo_root: Path,
-        test_source: str,
-        extra_instructions: str = "",
-    ) -> None:
+    def generate(self, test_source: str, extra_instructions: str = "") -> None:
         """
         Generate implementation and write to block_path/src/<function_name>.py.
 
@@ -72,13 +66,13 @@ class SourceCodeGenerator:
         it's prepended to guide fixes.
 
         Args:
-            contract: Contract specification defining the function signature and behavior.
-            block_path: Path to the block directory.
-            repo_root: Repository root for loading reference materials.
             test_source: Content of the generated test file (implementation must pass these).
             extra_instructions: Optional context from failures (e.g., pytest errors, static validation errors).
         """
-        fn = contract.function.name
+        contract = self._context.contract
+        block_path = self._context.block_path
+        repo_root = self._context.repo_root
+        fn = self._context.function_name
         module_file = f"src/{fn}.py"
         snippets = default_snippets(repo_root)
         contract_json = json.dumps(contract.model_dump(mode="json"), indent=2)

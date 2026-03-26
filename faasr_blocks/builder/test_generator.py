@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from faasr_blocks.builder.artifact_parse import extract_single_python_module, parse_marked_files
+from faasr_blocks.builder.block_context import BlockContext
 from faasr_blocks.builder.llm import LLMClient
 from faasr_blocks.builder.reference_snippets import default_snippets, example_block_test
-from faasr_blocks.models.contract import Contract
 
 SYSTEM_PROMPT = """You are an expert Python test author for FaaSr workflow function blocks.
 
@@ -43,22 +42,18 @@ class TestGenerator:
     - Fixture files for test data
     """
 
-    def __init__(self, llm: LLMClient) -> None:
+    def __init__(self, llm: LLMClient, context: BlockContext) -> None:
         """
         Initialize the test generator.
 
         Args:
             llm: LLM client for generating test code.
+            context: Block paths, contract, and repo layout.
         """
         self._llm = llm
+        self._context = context
 
-    def generate(
-        self,
-        contract: Contract,
-        block_path: Path,
-        repo_root: Path,
-        extra_instructions: str = "",
-    ) -> None:
+    def generate(self, extra_instructions: str = "") -> None:
         """
         Generate pytest tests for the block and write to block_path/tests/.
 
@@ -67,13 +62,13 @@ class TestGenerator:
         and example tests for pattern matching.
 
         Args:
-            contract: Contract specification to generate tests for.
-            block_path: Path to the block directory (e.g., blocks/GetWeatherData).
-            repo_root: Repository root for loading reference materials.
             extra_instructions: Optional additional requirements (e.g., from retry failures).
         """
-        fn = contract.function.name
-        block_name = contract.block_name
+        contract = self._context.contract
+        block_path = self._context.block_path
+        repo_root = self._context.repo_root
+        fn = self._context.function_name
+        block_name = self._context.block_name
         module_name = fn  # convention: get_weather_data.py
         snippets = default_snippets(repo_root)
         example = example_block_test(repo_root)

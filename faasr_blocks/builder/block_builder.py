@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from faasr_blocks.builder.block_context import BlockContext
 from faasr_blocks.builder.debug_log import debug_enabled, debug_print
 from faasr_blocks.builder.models import BuildResult, TestResult, ValidationResult
 from faasr_blocks.builder.source_generator import SourceCodeGenerator
@@ -11,7 +12,6 @@ from faasr_blocks.builder.static_validator import StaticValidator
 from faasr_blocks.builder.test_generator import TestGenerator
 from faasr_blocks.builder.test_runner import TestRunner
 from faasr_blocks.builder.test_validator import ContractTestCoverageValidator
-from faasr_blocks.models.contract import Contract
 from faasr_blocks.validation.block_validator import BlockValidator
 from faasr_blocks.validation.contract_validator import ContractValidator
 
@@ -98,7 +98,7 @@ class BlockBuilder:
 
     def __init__(
         self,
-        schema_path: Path,
+        context: BlockContext,
         test_generator: TestGenerator,
         test_coverage_validator: ContractTestCoverageValidator,
         source_generator: SourceCodeGenerator,
@@ -109,31 +109,27 @@ class BlockBuilder:
         Initialize the block builder.
 
         Args:
-            schema_path: Path to contract_schema.json (required).
+            context: Block paths, contract, schema path, and repo layout.
             test_generator: Generates pytest files under the block directory.
             test_coverage_validator: LLM check that tests cover the contract.
             source_generator: Generates implementation under src/.
             max_source_iterations: Maximum loops for source generation (static validation + pytest).
             retry_tests_once: If True, retry test generation once on coverage validation failure.
         """
-        self._schema_path = schema_path
+        self._context = context
         self._test_generator = test_generator
         self._test_coverage_validator = test_coverage_validator
         self._source_generator = source_generator
         self._max_source_iterations = max_source_iterations
         self._retry_tests_once = retry_tests_once
-        self._static_validator = StaticValidator()
-        self._test_runner = TestRunner()
+        self._static_validator = StaticValidator(context)
+        self._test_runner = TestRunner(context)
         self._block_validator = BlockValidator()
 
     def _run_source_iteration(
         self,
         attempt: int,
-        contract: Contract,
-        block_path: Path,
-        repo_root: Path,
         test_src: str,
-        fn: str,
         tval: ValidationResult,
     ) -> tuple[bool, BuildResult | None, TestResult | None, ValidationResult | None]:
         """
@@ -143,9 +139,10 @@ class BlockBuilder:
             (exit_early, early_result, last_test, last_static).
             If exit_early is True, caller returns early_result from build().
         """
-        src_file = block_path / "src" / f"{fn}.py"
+        block_path = self._context.block_path
+        src_file = self._context.src_file
         debug_print("--- iteration", attempt, "/", self._max_source_iterations, "---")
-        last_static = self._static_validator.validate(contract, src_file)
+        last_static = self._static_validator.validate()
         debug_print(
             "static_validation ok=",
             last_static.ok,
@@ -156,16 +153,13 @@ class BlockBuilder:
         )
         if not last_static.ok:
             self._source_generator.generate(
-                contract,
-                block_path,
-                repo_root,
                 test_src,
                 extra_instructions="Static validation failed:\n" + "\n".join(last_static.errors),
             )
             _debug_src_hints(src_file)
             return False, None, None, last_static
 
-        last_test = self._test_runner.run_tests(block_path, repo_root)
+        last_test = self._test_runner.run_tests()
         debug_print(
             "pytest passed=",
             last_test.passed,
@@ -223,31 +217,26 @@ class BlockBuilder:
             + _pytest_remediation_hints(last_test.stdout or "")
         )
         self._source_generator.generate(
-            contract,
-            block_path,
-            repo_root,
             test_src,
             extra_instructions=fail_text,
         )
         _debug_src_hints(src_file)
         return False, None, last_test, last_static
 
-    def build(self, contract: Contract, block_path: Path) -> BuildResult:
+    def build(self) -> BuildResult:
         """
         Build a block from contract: generate tests, source, validate, and run pytest.
 
-        Expects ``block_path`` to exist and contain ``contract.json``. Repository layout:
-        ``repo_root = block_path.parent.parent``, ``blocks_root = block_path.parent``.
-
-        Args:
-            contract: Contract specification (must match on-disk contract.json).
-            block_path: Existing block directory (e.g. blocks/GetWeatherData).
+        Uses :class:`BlockContext` supplied at construction. Expects ``block_path`` to exist
+        and contain ``contract.json``.
 
         Returns:
             BuildResult with success status, paths, attempt count, and validation/test results.
         """
-        block_path = block_path.resolve()
-        repo_root = block_path.parent.parent
+        self._context.block_path = self._context.block_path.resolve()
+        contract = self._context.contract
+        block_path = self._context.block_path
+        test_path = self._context.test_path
 
         debug_print(
             "build start block_name=",
@@ -261,8 +250,8 @@ class BlockBuilder:
             "Set FAASR_BLOCKS_DEBUG=1 for extra diagnostics (HTTP mock vs response.text/json).",
         )
 
-        contract_path = block_path / "contract.json"
-        cv = ContractValidator(self._schema_path)
+        contract_path = self._context.contract_path
+        cv = ContractValidator(self._context.schema_path)
         ok, msg = cv.validate_contract(contract_path)
         if not ok:
             return BuildResult(
@@ -271,22 +260,16 @@ class BlockBuilder:
                 message=f"Contract validation failed: {msg}",
             )
 
-        fn = contract.function.name
-        test_path = block_path / "tests" / f"test_{fn}.py"
-
-        self._test_generator.generate(contract, block_path, repo_root)
+        self._test_generator.generate()
         debug_print("after test_gen tests at", test_path)
 
-        tval = self._test_coverage_validator.validate(contract, test_path)
+        tval = self._test_coverage_validator.validate()
         if not tval.ok and self._retry_tests_once:
             self._test_generator.generate(
-                contract,
-                block_path,
-                repo_root,
                 extra_instructions="Prior test-contract validation reported gaps:\n"
                 + "\n".join(tval.errors),
             )
-            tval = self._test_coverage_validator.validate(contract, test_path)
+            tval = self._test_coverage_validator.validate()
 
         if not tval.ok:
             return BuildResult(
@@ -298,10 +281,8 @@ class BlockBuilder:
 
         debug_print("test-contract coverage ok")
         test_src = test_path.read_text(encoding="utf-8")
-        self._source_generator.generate(
-            contract, block_path, repo_root, test_src, extra_instructions=""
-        )
-        _debug_src_hints(block_path / "src" / f"{fn}.py")
+        self._source_generator.generate(test_src, extra_instructions="")
+        _debug_src_hints(self._context.src_file)
 
         last_test: TestResult | None = None
         last_static: ValidationResult | None = None
@@ -309,11 +290,7 @@ class BlockBuilder:
         for attempt in range(1, self._max_source_iterations + 1):
             exit_early, early, last_test, last_static = self._run_source_iteration(
                 attempt,
-                contract,
-                block_path,
-                repo_root,
                 test_src,
-                fn,
                 tval,
             )
             if exit_early and early is not None:

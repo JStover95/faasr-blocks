@@ -27,6 +27,7 @@ load_dotenv()
 
 import faasr_blocks
 from faasr_blocks.builder.block_builder import BlockBuilder
+from faasr_blocks.builder.block_context import BlockContext
 from faasr_blocks.builder.config import load_llm_env_config
 from faasr_blocks.builder.llm import OpenAIChatLLM
 from faasr_blocks.builder.source_generator import SourceCodeGenerator
@@ -99,17 +100,24 @@ def main(argv: list[str] | None = None) -> int:
 
     contract = Contract.from_json_path(contract_path)
 
+    context = BlockContext(
+        contract=contract,
+        block_path=block_path,
+        repo_root=repo_root,
+        schema_path=schema_path,
+    )
+
     llm = OpenAIChatLLM(
         api_key=llm_cfg.api_key,
         base_url=llm_cfg.base_url,
         model=llm_cfg.model,
     )
-    test_generator = TestGenerator(llm)
-    test_coverage_validator = ContractTestCoverageValidator(llm)
-    source_generator = SourceCodeGenerator(llm)
+    test_generator = TestGenerator(llm, context)
+    test_coverage_validator = ContractTestCoverageValidator(llm, context)
+    source_generator = SourceCodeGenerator(llm, context)
 
     builder = BlockBuilder(
-        schema_path=schema_path,
+        context=context,
         test_generator=test_generator,
         test_coverage_validator=test_coverage_validator,
         source_generator=source_generator,
@@ -120,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Blocks root: {blocks_root}")
     print(f"Building block: {contract.block_name}")
     try:
-        result = builder.build(contract, block_path)
+        result = builder.build()
     except RuntimeError as e:
         print(str(e), file=sys.stderr)
         return 2

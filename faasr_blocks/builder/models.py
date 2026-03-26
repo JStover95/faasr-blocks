@@ -68,7 +68,7 @@ class TestResult:
 @dataclass
 class BuildResult:
     """
-    Final outcome of the block building process from :meth:`BlockBuilder.build`.
+    Final outcome of the block building process from :meth:`BlockBuilder.build` (no arguments).
 
     Attributes:
         success: True if block was successfully built and all tests passed.

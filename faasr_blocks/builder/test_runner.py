@@ -11,8 +11,8 @@ import os
 import re
 import subprocess
 import sys
-from pathlib import Path
 
+from faasr_blocks.builder.block_context import BlockContext
 from faasr_blocks.builder.debug_log import debug_print
 from faasr_blocks.builder.models import TestResult
 
@@ -25,17 +25,18 @@ class TestRunner:
     to allow block imports (e.g., blocks.GetWeatherData.src.get_weather_data).
     """
 
-    def run_tests(self, block_path: Path, repo_root: Path) -> TestResult:
-        """
-        Run pytest on block_path/tests/ and return structured results.
+    def __init__(self, context: BlockContext) -> None:
+        self._context = context
 
-        Args:
-            block_path: Path to the block directory (e.g., blocks/GetWeatherData).
-            repo_root: Repository root to use as cwd and add to PYTHONPATH.
+    def run_tests(self) -> TestResult:
+        """
+        Run pytest on the block's tests/ directory and return structured results.
 
         Returns:
             TestResult with pass/fail status, exit code, captured output, and summary line.
         """
+        block_path = self._context.block_path
+        repo_root = self._context.repo_root
         tests_dir = block_path / "tests"
         if not tests_dir.is_dir():
             return TestResult(

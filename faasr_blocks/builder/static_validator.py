@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import ast
-from pathlib import Path
 
+from faasr_blocks.builder.block_context import BlockContext
 from faasr_blocks.builder.models import ValidationResult
-from faasr_blocks.models.contract import Contract
 
 # Map contract argument types to acceptable ast annotation nodes (by string form).
 _TYPE_ALIASES: dict[str, set[str]] = {
@@ -159,17 +158,18 @@ class StaticValidator:
     - Type hints match contract types (warnings only, not errors)
     """
 
-    def validate(self, contract: Contract, source_file: Path) -> ValidationResult:
-        """
-        Parse source_file and check if it implements the contract's function specification.
+    def __init__(self, context: BlockContext) -> None:
+        self._context = context
 
-        Args:
-            contract: The contract specification to validate against.
-            source_file: Path to the Python source file to validate.
+    def validate(self) -> ValidationResult:
+        """
+        Parse the block's source file and check it implements the contract's function specification.
 
         Returns:
             ValidationResult with ok=True if all checks pass, or ok=False with detailed errors.
         """
+        contract = self._context.contract
+        source_file = self._context.src_file
         errors: list[str] = []
         warnings: list[str] = []
 

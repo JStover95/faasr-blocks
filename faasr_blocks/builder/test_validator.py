@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
 
+from faasr_blocks.builder.block_context import BlockContext
 from faasr_blocks.builder.llm import LLMClient
 from faasr_blocks.builder.models import ValidationResult
-from faasr_blocks.models.contract import Contract
 
 SYSTEM_PROMPT = """You validate whether a pytest file adequately covers a FaaSr block contract.
 
@@ -33,29 +32,29 @@ class ContractTestCoverageValidator:
     - Uncovered function arguments or edge cases
     """
 
-    def __init__(self, llm: LLMClient) -> None:
+    def __init__(self, llm: LLMClient, context: BlockContext) -> None:
         """
         Initialize the validator.
 
         Args:
             llm: LLM client for analyzing test coverage.
+            context: Block paths and contract.
         """
         self._llm = llm
+        self._context = context
 
-    def validate(self, contract: Contract, test_file: Path) -> ValidationResult:
+    def validate(self) -> ValidationResult:
         """
-        Check if test_file adequately covers the contract.
+        Check if the block's test file adequately covers the contract.
 
         Sends the contract and test source to the LLM, which returns a JSON response
         indicating whether coverage is adequate and listing any gaps.
 
-        Args:
-            contract: Contract specification with expected coverage.
-            test_file: Path to the generated test file to validate.
-
         Returns:
             ValidationResult with ok=True if adequate, or ok=False with gap descriptions.
         """
+        test_file = self._context.test_path
+        contract = self._context.contract
         if not test_file.is_file():
             return ValidationResult.failure([f"Test file not found: {test_file}"])
         test_src = test_file.read_text(encoding="utf-8")
