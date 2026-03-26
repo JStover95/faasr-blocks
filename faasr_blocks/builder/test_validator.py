@@ -20,6 +20,24 @@ Adequate means: exercises the entrypoint function, covers required secrets if an
 via mocked faasr_put_file when applicable, and for bool return contracts checks faasr_return behavior.
 """
 
+USER_PROMPT_TEMPLATE = """
+Contract JSON:
+{contract_json}
+
+Test file path: {test_file_name}
+---
+{test_src}
+---
+"""
+
+
+def get_user_prompt(contract_json: str, test_file_name: str, test_src: str) -> str:
+    return USER_PROMPT_TEMPLATE.format(
+        contract_json=contract_json,
+        test_file_name=test_file_name,
+        test_src=test_src,
+    ).strip()
+
 
 class ContractTestCoverageValidator:
     """
@@ -53,22 +71,21 @@ class ContractTestCoverageValidator:
         Returns:
             ValidationResult with ok=True if adequate, or ok=False with gap descriptions.
         """
+        # Extract context values
         test_file = self._context.test_path
         contract = self._context.contract
+
+        # Validate that the test file exists
         if not test_file.is_file():
             return ValidationResult.failure([f"Test file not found: {test_file}"])
+
+        # Prepare the user prompt
         test_src = test_file.read_text(encoding="utf-8")
         contract_json = json.dumps(contract.model_dump(mode="json"), indent=2)
-        user = f"""
-Contract JSON:
-{contract_json}
-
-Test file path: {test_file.name}
----
-{test_src}
----
-""".strip()
+        user = get_user_prompt(contract_json, test_file.name, test_src)
         raw = self._llm.complete(SYSTEM_PROMPT, user).strip()
+
+        # Try to parse the LLM response as JSON
         raw = _strip_json_fence(raw)
         try:
             data = json.loads(raw)
@@ -76,9 +93,13 @@ Test file path: {test_file.name}
             return ValidationResult.failure(
                 [f"Test-contract validator returned non-JSON: {raw[:500]!r}"]
             )
+
+        # Check if the test file adequately covers the contract and return a success result
         ok = bool(data.get("ok"))
         if ok:
             return ValidationResult.success()
+
+        # Extract the gaps from the LLM response and return a failure result
         gaps = data.get("gaps")
         if isinstance(gaps, list):
             errs = [str(g) for g in gaps]

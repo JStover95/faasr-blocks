@@ -34,6 +34,53 @@ Either a single ```python fenced block with the full module, OR marked files:
 ```
 """
 
+USER_PROMPT_TEMPLATE = """
+{extra_instructions}
+
+Contract JSON:
+{contract_json}
+
+Reference tutorial example (pattern):
+```python
+{compute_sum_py}
+```
+
+Py API excerpt:
+---
+{py_api}
+---
+
+Current tests (implementation must pass these):
+```python
+{test_source}
+```
+
+Emit the implementation as:
+
+### FILE: {module_file}
+```python
+# full module
+```
+"""
+
+
+def get_user_prompt(
+    extra_instructions: str,
+    contract_json: str,
+    compute_sum_py: str,
+    py_api: str,
+    test_source: str,
+    module_file: str,
+) -> str:
+    return USER_PROMPT_TEMPLATE.format(
+        extra_instructions=extra_instructions,
+        contract_json=contract_json,
+        compute_sum_py=compute_sum_py,
+        py_api=py_api,
+        test_source=test_source,
+        module_file=module_file,
+    ).strip()
+
 
 class SourceCodeGenerator:
     """
@@ -73,38 +120,17 @@ class SourceCodeGenerator:
         block_path = self._context.block_path
         repo_root = self._context.repo_root
         fn = self._context.function_name
-        module_file = f"src/{fn}.py"
         snippets = default_snippets(repo_root)
         contract_json = json.dumps(contract.model_dump(mode="json"), indent=2)
-
-        user = f"""
-{extra_instructions}
-
-Contract JSON:
-{contract_json}
-
-Reference tutorial example (pattern):
-```python
-{snippets["compute_sum_py"]}
-```
-
-Py API excerpt:
----
-{snippets["py_api"]}
----
-
-Current tests (implementation must pass these):
-```python
-{test_source}
-```
-
-Emit the implementation as:
-
-### FILE: {module_file}
-```python
-# full module
-```
-""".strip()
+        module_file = f"src/{fn}.py"
+        user = get_user_prompt(
+            extra_instructions,
+            contract_json,
+            snippets["compute_sum_py"],
+            snippets["py_api"],
+            test_source,
+            module_file,
+        )
 
         raw = self._llm.complete(SYSTEM_PROMPT, user)
         try:
