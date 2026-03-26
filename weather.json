@@ -12,9 +12,6 @@
       "dt": 1609459200,
       "main": {
         "temp": 280.32,
-        "feels_like": 278.45,
-        "temp_min": 279.15,
-        "temp_max": 281.15,
         "pressure": 1012,
         "humidity": 81
       },
@@ -25,20 +22,12 @@
           "description": "few clouds",
           "icon": "02d"
         }
-      ],
-      "wind": {
-        "speed": 1.5,
-        "deg": 350
-      },
-      "dt_txt": "2021-01-01 00:00:00"
+      ]
     },
     {
       "dt": 1609462800,
       "main": {
         "temp": 281.32,
-        "feels_like": 279.45,
-        "temp_min": 280.15,
-        "temp_max": 282.15,
         "pressure": 1012,
         "humidity": 80
       },
@@ -49,12 +38,7 @@
           "description": "scattered clouds",
           "icon": "03d"
         }
-      ],
-      "wind": {
-        "speed": 1.5,
-        "deg": 350
-      },
-      "dt_txt": "2021-01-01 03:00:00"
+      ]
     }
   ]
 }

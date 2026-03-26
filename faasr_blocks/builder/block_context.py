@@ -17,6 +17,14 @@ class BlockContext:
     repo_root: Path
     schema_path: Path
 
+    def __post_init__(self) -> None:
+        """
+        Resolve all paths to absolute paths after initialization.
+        """
+        self.block_path = self.block_path.resolve()
+        self.repo_root = self.repo_root.resolve()
+        self.schema_path = self.schema_path.resolve()
+
     @property
     def function_name(self) -> str:
         """Function name from contract."""

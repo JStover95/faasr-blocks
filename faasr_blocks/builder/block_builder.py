@@ -233,10 +233,12 @@ class BlockBuilder:
         Returns:
             BuildResult with success status, paths, attempt count, and validation/test results.
         """
-        self._context.block_path = self._context.block_path.resolve()
+        # Pull context values
         contract = self._context.contract
         block_path = self._context.block_path
         test_path = self._context.test_path
+        contract_path = self._context.contract_path
+        schema_path = self._context.schema_path
 
         debug_print(
             "build start block_name=",
@@ -250,8 +252,8 @@ class BlockBuilder:
             "Set FAASR_BLOCKS_DEBUG=1 for extra diagnostics (HTTP mock vs response.text/json).",
         )
 
-        contract_path = self._context.contract_path
-        cv = ContractValidator(self._context.schema_path)
+        # 1. Validate that the contract is valid
+        cv = ContractValidator(schema_path)
         ok, msg = cv.validate_contract(contract_path)
         if not ok:
             return BuildResult(
@@ -260,10 +262,15 @@ class BlockBuilder:
                 message=f"Contract validation failed: {msg}",
             )
 
+        # 2. Generate tests
         self._test_generator.generate()
+
         debug_print("after test_gen tests at", test_path)
 
+        # 3. Validate that the tests cover the contract
         tval = self._test_coverage_validator.validate()
+
+        # 4. Retry test generation if needed and retry tests once is set
         if not tval.ok and self._retry_tests_once:
             self._test_generator.generate(
                 extra_instructions="Prior test-contract validation reported gaps:\n"
@@ -280,13 +287,16 @@ class BlockBuilder:
             )
 
         debug_print("test-contract coverage ok")
+
+        # 5. Generate source code
         test_src = test_path.read_text(encoding="utf-8")
         self._source_generator.generate(test_src, extra_instructions="")
+
         _debug_src_hints(self._context.src_file)
 
+        # 6. Run source code generation iterations until tests pass
         last_test: TestResult | None = None
         last_static: ValidationResult | None = None
-
         for attempt in range(1, self._max_source_iterations + 1):
             exit_early, early, last_test, last_static = self._run_source_iteration(
                 attempt,
