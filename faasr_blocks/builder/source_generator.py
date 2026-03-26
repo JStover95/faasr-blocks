@@ -116,13 +116,16 @@ class SourceCodeGenerator:
             test_source: Content of the generated test file (implementation must pass these).
             extra_instructions: Optional context from failures (e.g., pytest errors, static validation errors).
         """
+        # Extract context values
         contract = self._context.contract
         block_path = self._context.block_path
         repo_root = self._context.repo_root
-        fn = self._context.function_name
+        function_name = self._context.function_name
+
+        # Prepare the prompt
         snippets = default_snippets(repo_root)
         contract_json = json.dumps(contract.model_dump(mode="json"), indent=2)
-        module_file = f"src/{fn}.py"
+        module_file = f"src/{function_name}.py"
         user = get_user_prompt(
             extra_instructions,
             contract_json,
@@ -132,25 +135,20 @@ class SourceCodeGenerator:
             module_file,
         )
 
+        # Call the LLM to generate the source code
         raw = self._llm.complete(SYSTEM_PROMPT, user)
         try:
             files = parse_marked_files(raw)
         except ValueError:
             raise ValueError(f"Failed to parse LLM output: {raw[:500]!r}")
 
-        # Prefer exact module path
-        key = module_file
-        if key not in files:
-            # allow alternate key without src/
-            alt = f"{fn}.py"
-            if alt in files:
-                key = alt
-            elif len(files) == 1:
-                key = next(iter(files))
-            else:
-                raise ValueError(f"LLM output missing {module_file!r}; got keys {list(files)!r}")
+        # Try to get the source code for the module file
+        try:
+            content = files[module_file]
+        except KeyError:
+            raise ValueError(f"LLM output missing {module_file!r}; got keys {list(files)!r}")
 
-        content = files[key]
-        out = block_path / "src" / f"{fn}.py"
+        # Write the source code to the block directory
+        out = block_path / "src" / f"{function_name}.py"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(content if content.endswith("\n") else content + "\n", encoding="utf-8")
