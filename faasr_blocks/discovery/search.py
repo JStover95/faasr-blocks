@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from types import TracebackType
+from typing import Protocol, Self, runtime_checkable
 
 import sqlite_vec
 
@@ -38,7 +39,25 @@ class SearchResult:
 
 @runtime_checkable
 class BlockSearchEngine(Protocol):
-    """Protocol for block search engines (dependency injection)."""
+    """Protocol for block search engines (dependency injection).
+
+    Implementations should support use as a context manager so SQLite resources
+    are released on exit; callers use ``with engine as e: ...`` instead of
+    manual ``close()``.
+    """
+
+    def __enter__(self) -> BlockSearchEngine:
+        """Enter context; return self for ``with`` binding."""
+        ...
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit context; release backing resources (e.g. close DB connection)."""
+        ...
 
     def search(self, query_text: str, top_n: int = 10) -> list[SearchResult]:
         """
@@ -88,7 +107,18 @@ class SqliteVecSearchEngine:
         """
         self._embedding_client = embedding_client
         self._embeddings_by_name = {e.block_name: e for e in embeddings}
-        self._conn = self._build_index(embeddings)
+        self._conn: sqlite3.Connection | None = self._build_index(embeddings)
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        self.close()
 
     def _build_index(self, embeddings: list[BlockEmbedding]) -> sqlite3.Connection:
         """
@@ -146,6 +176,9 @@ class SqliteVecSearchEngine:
         return conn
 
     def search(self, query_text: str, top_n: int = 10) -> list[SearchResult]:
+        if self._conn is None:
+            raise RuntimeError("SqliteVecSearchEngine is closed")
+
         query_embedding = self._embedding_client.embed(query_text)
 
         cursor = self._conn.execute(
@@ -184,9 +217,10 @@ class SqliteVecSearchEngine:
         return self._embeddings_by_name.get(block_name)
 
     def close(self) -> None:
-        """Close the database connection."""
-        if self._conn:
+        """Close the database connection. Idempotent; safe after context exit."""
+        if self._conn is not None:
             self._conn.close()
+            self._conn = None
 
 
 def json_array_to_blob(arr: list[float]) -> bytes:

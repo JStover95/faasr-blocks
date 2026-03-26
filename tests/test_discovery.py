@@ -5,6 +5,8 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from faasr_blocks.discovery.embedding import (
     BlockEmbedding,
     EmbeddingGenerator,
@@ -183,41 +185,52 @@ def test_sqlite_vec_search_engine_basic_search():
     ]
 
     client = MockEmbeddingClient(dimension=3)
-    engine = SqliteVecSearchEngine(embeddings, client)
+    with SqliteVecSearchEngine(embeddings, client) as engine:
+        results = engine.search("fetch weather", top_n=2)
 
-    results = engine.search("fetch weather", top_n=2)
-
-    assert len(results) <= 2
-    assert all(r.block_name in ["WeatherFetch", "DataProcess"] for r in results)
-    assert all(isinstance(r.similarity, float) for r in results)
-
-    engine.close()
+        assert len(results) <= 2
+        assert all(r.block_name in ["WeatherFetch", "DataProcess"] for r in results)
+        assert all(isinstance(r.similarity, float) for r in results)
 
 
 def test_sqlite_vec_search_engine_get_embedding():
     """SqliteVecSearchEngine should retrieve stored embeddings."""
     embedding = BlockEmbedding("TestBlock", "1.0.0", [1.0, 2.0], "hash", "Test text")
     client = MockEmbeddingClient(dimension=2)
-    engine = SqliteVecSearchEngine([embedding], client)
+    with SqliteVecSearchEngine([embedding], client) as engine:
+        retrieved = engine.get_embedding("TestBlock")
 
-    retrieved = engine.get_embedding("TestBlock")
-
-    assert retrieved is not None
-    assert retrieved.block_name == "TestBlock"
-    assert retrieved.embedding == [1.0, 2.0]
-
-    engine.close()
+        assert retrieved is not None
+        assert retrieved.block_name == "TestBlock"
+        assert retrieved.embedding == [1.0, 2.0]
 
 
 def test_sqlite_vec_search_engine_missing_embedding():
     """SqliteVecSearchEngine should return None for missing blocks."""
     client = MockEmbeddingClient(dimension=2)
-    engine = SqliteVecSearchEngine([], client)
+    with SqliteVecSearchEngine([], client) as engine:
+        result = engine.get_embedding("NonExistent")
 
-    result = engine.get_embedding("NonExistent")
+        assert result is None
 
-    assert result is None
-    engine.close()
+
+def test_sqlite_vec_search_engine_closed_after_context_exit():
+    """After exiting the context manager, search must not use a closed connection."""
+    embeddings = [
+        BlockEmbedding(
+            "A",
+            "1.0.0",
+            [1.0, 0.0],
+            "h",
+            "text",
+        ),
+    ]
+    client = MockEmbeddingClient(dimension=2)
+    engine = SqliteVecSearchEngine(embeddings, client)
+    with engine as e:
+        e.search("q", top_n=1)
+    with pytest.raises(RuntimeError, match="closed"):
+        engine.search("q", top_n=1)
 
 
 def test_block_embedding_json_roundtrip():

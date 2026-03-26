@@ -69,6 +69,7 @@ faasr_blocks/discovery/
 
 **`BlockSearchEngine` (Protocol)**: Search interface
 
+- Context manager: `__enter__` / `__exit__` for automatic cleanup of backing resources
 - `search(query_text, top_n)` → results
 - `get_embedding(block_name)` → stored embedding
 
@@ -77,7 +78,7 @@ faasr_blocks/discovery/
 - Uses sqlite-vec's `vec0` virtual table
 - Cosine similarity search
 - Builds index on initialization
-- Requires `close()` for cleanup
+- Prefer ``with SqliteVecSearchEngine(...) as engine:``; ``close()`` remains available and is idempotent
 
 ## Usage Patterns
 
@@ -118,13 +119,10 @@ all_embeddings = store.download_all()
 from faasr_blocks.discovery import BlockSearchEngine
 from faasr_blocks.discovery.search import SqliteVecSearchEngine
 
-engine = SqliteVecSearchEngine(all_embeddings, embedding_client)
-results = engine.search("fetch weather data", top_n=5)
-
-for result in results:
-    print(f"{result.block_name}: {result.similarity:.4f}")
-
-engine.close()
+with SqliteVecSearchEngine(all_embeddings, embedding_client) as engine:
+    results = engine.search("fetch weather data", top_n=5)
+    for result in results:
+        print(f"{result.block_name}: {result.similarity:.4f}")
 ```
 
 ## Design Principles

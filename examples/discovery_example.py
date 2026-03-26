@@ -92,53 +92,51 @@ def main():
     print("=" * 80)
 
     print("\nInitializing sqlite-vec search engine...")
-    search_engine = SqliteVecSearchEngine(embeddings, embedding_client)
-    print(f"✓ Indexed {len(embeddings)} blocks for vector search")
+    with SqliteVecSearchEngine(embeddings, embedding_client) as search_engine:
+        print(f"✓ Indexed {len(embeddings)} blocks for vector search")
 
-    print("\n" + "=" * 80)
-    print("Step 4: Semantic Search Examples")
-    print("=" * 80)
+        print("\n" + "=" * 80)
+        print("Step 4: Semantic Search Examples")
+        print("=" * 80)
 
-    queries = [
-        "fetch weather data from an API",
-        "process JSON time-series data",
-        "create visualizations with matplotlib",
-    ]
+        queries = [
+            "fetch weather data from an API",
+            "process JSON time-series data",
+            "create visualizations with matplotlib",
+        ]
 
-    for query in queries:
-        print(f"\nQuery: '{query}'")
-        print("-" * 80)
-        try:
-            results = search_engine.search(query, top_n=3)
-            if not results:
-                print("  No results found.")
-            else:
-                for i, result in enumerate(results, 1):
-                    print(f"\n  {i}. {result.block_name} (v{result.version})")
-                    print(f"     Similarity: {result.similarity:.4f}")
-                    first_line = result.text.split("\n")[0] if result.text else ""
-                    print(f"     {first_line}")
-        except Exception as e:
-            print(f"  Search failed: {e}")
+        for query in queries:
+            print(f"\nQuery: '{query}'")
+            print("-" * 80)
+            try:
+                results = search_engine.search(query, top_n=3)
+                if not results:
+                    print("  No results found.")
+                else:
+                    for i, result in enumerate(results, 1):
+                        print(f"\n  {i}. {result.block_name} (v{result.version})")
+                        print(f"     Similarity: {result.similarity:.4f}")
+                        first_line = result.text.split("\n")[0] if result.text else ""
+                        print(f"     {first_line}")
+            except Exception as e:
+                print(f"  Search failed: {e}")
 
-    print("\n" + "=" * 80)
-    print("Step 5: Retrieve Full Contract")
-    print("=" * 80)
+        print("\n" + "=" * 80)
+        print("Step 5: Retrieve Full Contract")
+        print("=" * 80)
 
-    if embeddings:
-        example_block = embeddings[0].block_name
-        print(f"\nRetrieving contract for: {example_block}")
-        contract_path = blocks_root / example_block / "contract.json"
-        if contract_path.exists():
-            contract = Contract.from_json_path(contract_path)
-            print(f"✓ Loaded contract for {contract.block_name}")
-            print(f"  Function: {contract.function.name}()")
-            print(f"  Role: {contract.metadata.role}")
-            print(f"  Data Type: {contract.metadata.data_type}")
-            print(f"  S3 Outputs: {len(contract.s3_outputs)}")
-            print(f"  Dependencies: {len(contract.dependencies.python_packages)} packages")
-
-    search_engine.close()
+        if embeddings:
+            example_block = embeddings[0].block_name
+            print(f"\nRetrieving contract for: {example_block}")
+            contract_path = blocks_root / example_block / "contract.json"
+            if contract_path.exists():
+                contract = Contract.from_json_path(contract_path)
+                print(f"✓ Loaded contract for {contract.block_name}")
+                print(f"  Function: {contract.function.name}()")
+                print(f"  Role: {contract.metadata.role}")
+                print(f"  Data Type: {contract.metadata.data_type}")
+                print(f"  S3 Outputs: {len(contract.s3_outputs)}")
+                print(f"  Dependencies: {len(contract.dependencies.python_packages)} packages")
 
     print("\n" + "=" * 80)
     print("Discovery Example Complete")

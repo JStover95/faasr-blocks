@@ -194,38 +194,29 @@ def cmd_search(args: argparse.Namespace, repo_root: Path) -> int:
 
     print(f"Loaded {len(embeddings)} block embeddings.")
 
-    # Initialize the search engine
-    search_engine = SqliteVecSearchEngine(embeddings, embedding_client)
+    with SqliteVecSearchEngine(embeddings, embedding_client) as search_engine:
+        print(f"\nSearching for: {args.query}")
+        print("-" * 80)
 
-    print(f"\nSearching for: {args.query}")
-    print("-" * 80)
+        try:
+            results = search_engine.search(args.query, top_n=args.top_n)
+        except Exception as e:
+            print(f"Search failed: {e}", file=sys.stderr)
+            return 1
 
-    # Search for the query
-    try:
-        results = search_engine.search(args.query, top_n=args.top_n)
-    except Exception as e:
-        print(f"Search failed: {e}", file=sys.stderr)
-        search_engine.close()
-        return 1
+        if not results:
+            print("No results found.")
+            return 0
 
-    # Exit if no results are found
-    if not results:
-        print("No results found.")
-        search_engine.close()
-        return 0
-
-    # Iterate over and print the results
-    for i, result in enumerate(results, 1):
-        print(f"\n{i}. {result.block_name} (v{result.version})")
-        print(f"   Similarity: {result.similarity:.4f}")
-        print(f"   Metadata hash: {result.metadata_hash[:16]}...")
-        print("\n   Description:")
-        for line in result.text.split("\n")[:5]:
-            print(f"     {line}")
-        if len(result.text.split("\n")) > 5:
-            print("     ...")
-
-    search_engine.close()
+        for i, result in enumerate(results, 1):
+            print(f"\n{i}. {result.block_name} (v{result.version})")
+            print(f"   Similarity: {result.similarity:.4f}")
+            print(f"   Metadata hash: {result.metadata_hash[:16]}...")
+            print("\n   Description:")
+            for line in result.text.split("\n")[:5]:
+                print(f"     {line}")
+            if len(result.text.split("\n")) > 5:
+                print("     ...")
 
     return 0
 
