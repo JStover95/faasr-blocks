@@ -55,6 +55,7 @@ def cmd_embed(args: argparse.Namespace, repo_root: Path) -> int:
     Returns:
         Exit code (0 on success, 1 on error).
     """
+    # Load config
     try:
         llm_cfg = load_llm_env_config()
         s3_cfg = load_s3_env_config()
@@ -62,11 +63,13 @@ def cmd_embed(args: argparse.Namespace, repo_root: Path) -> int:
         print(str(e), file=sys.stderr)
         return 1
 
+    # Validate blocks directory exists
     blocks_root = repo_root / "blocks"
     if not blocks_root.is_dir():
         print(f"Blocks directory not found: {blocks_root}", file=sys.stderr)
         return 1
 
+    # Initialize the clients and generator
     embedding_client = OpenAIEmbeddingClient(
         api_key=llm_cfg.api_key,
         base_url=llm_cfg.base_url,
@@ -80,27 +83,38 @@ def cmd_embed(args: argparse.Namespace, repo_root: Path) -> int:
         bucket=s3_cfg.bucket,
     )
 
+    # If the user generates all embeddings
     if args.all:
+        # Collect all block directories
         block_dirs = [
             d for d in blocks_root.iterdir() if d.is_dir() and (d / "contract.json").exists()
         ]
+
+        # Exit if no blocks are found
         if not block_dirs:
             print(f"No blocks found in {blocks_root}", file=sys.stderr)
             return 1
 
         print(f"Generating embeddings for {len(block_dirs)} blocks...")
+
+        # Iterate over all block directories
         for block_dir in block_dirs:
             try:
+                # Embed and upload the contract
                 contract = Contract.from_json_path(block_dir / "contract.json")
                 embedding = generator.generate(contract)
                 store.upload(embedding)
                 print(f"  ✓ {contract.block_name} (v{contract.version})")
             except Exception as e:
                 print(f"  ✗ {block_dir.name}: {e}", file=sys.stderr)
+
         print("Done.")
+
         return 0
 
+    # If the user generates an embedding for a specific block
     if args.block:
+        # Validate the block directory and contract file exist
         block_dir = blocks_root / args.block
         contract_path = block_dir / "contract.json"
         if not contract_path.exists():
@@ -108,20 +122,24 @@ def cmd_embed(args: argparse.Namespace, repo_root: Path) -> int:
             return 1
 
         try:
+            # Embed and upload the contract
             contract = Contract.from_json_path(contract_path)
             embedding = generator.generate(contract)
             store.upload(embedding)
+
             print(
                 f"✓ Generated and uploaded embedding for {contract.block_name} (v{contract.version})"
             )
             print(f"  Metadata hash: {embedding.metadata_hash}")
             print(f"  Vector dimensions: {len(embedding.embedding)}")
+
             return 0
         except Exception as e:
             print(f"Failed: {e}", file=sys.stderr)
             return 1
 
     print("Must specify --all or --block BLOCK_NAME", file=sys.stderr)
+
     return 1
 
 
@@ -136,6 +154,7 @@ def cmd_search(args: argparse.Namespace, repo_root: Path) -> int:
     Returns:
         Exit code (0 on success, 1 on error).
     """
+    # Load config
     try:
         llm_cfg = load_llm_env_config()
         s3_cfg = load_s3_env_config()
@@ -143,6 +162,7 @@ def cmd_search(args: argparse.Namespace, repo_root: Path) -> int:
         print(str(e), file=sys.stderr)
         return 1
 
+    # Initialize the clients and embedding store
     embedding_client = OpenAIEmbeddingClient(
         api_key=llm_cfg.api_key,
         base_url=llm_cfg.base_url,
@@ -156,12 +176,15 @@ def cmd_search(args: argparse.Namespace, repo_root: Path) -> int:
     )
 
     print("Loading embeddings from S3...")
+
+    # Download all embeddings from S3
     try:
         embeddings = store.download_all()
     except Exception as e:
         print(f"Failed to load embeddings: {e}", file=sys.stderr)
         return 1
 
+    # Exit if no embeddings are found
     if not embeddings:
         print(
             "No embeddings found in S3. Run 'faasr-blocks-discover embed --all' first.",
@@ -171,11 +194,13 @@ def cmd_search(args: argparse.Namespace, repo_root: Path) -> int:
 
     print(f"Loaded {len(embeddings)} block embeddings.")
 
+    # Initialize the search engine
     search_engine = SqliteVecSearchEngine(embeddings, embedding_client)
 
     print(f"\nSearching for: {args.query}")
     print("-" * 80)
 
+    # Search for the query
     try:
         results = search_engine.search(args.query, top_n=args.top_n)
     except Exception as e:
@@ -183,11 +208,13 @@ def cmd_search(args: argparse.Namespace, repo_root: Path) -> int:
         search_engine.close()
         return 1
 
+    # Exit if no results are found
     if not results:
         print("No results found.")
         search_engine.close()
         return 0
 
+    # Iterate over and print the results
     for i, result in enumerate(results, 1):
         print(f"\n{i}. {result.block_name} (v{result.version})")
         print(f"   Similarity: {result.similarity:.4f}")
@@ -199,6 +226,7 @@ def cmd_search(args: argparse.Namespace, repo_root: Path) -> int:
             print("     ...")
 
     search_engine.close()
+
     return 0
 
 
