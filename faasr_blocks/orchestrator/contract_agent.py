@@ -86,10 +86,18 @@ class ContractGenerationAgent:
 
 Goal: From the user's workflow description, either ask clarifying questions OR emit concrete block contracts.
 
-FaaSr blocks are Python functions that use these stubs (import from FaaSr_py.client.py_client_stubs):
-- faasr_get_file, faasr_put_file, faasr_delete_file, faasr_log
-- faasr_secret(name: str) for API keys listed in required_secrets
-- faasr_return(value: bool) ONLY when function.return_type is \"bool\" (branching workflows)
+Each block is one Python module with a single entrypoint function. Two different naming layers:
+
+1) Contract field function.name — the block's own entrypoint (snake_case), describing what the step does.
+   Derive it from block_name: PascalCase -> snake_case (e.g. DownloadGHCNDData -> download_ghcnd_data,
+   GetWeatherData -> get_weather_data). This is NOT a FaaSr API name.
+
+2) FaaSr client stubs — used only inside the implementation (import from FaaSr_py.client.py_client_stubs):
+   faasr_get_file, faasr_put_file, faasr_delete_file, faasr_log; faasr_secret for required_secrets;
+   faasr_return(value: bool) only when function.return_type is \"bool\" (branching).
+
+Never set function.name to a FaaSr stub (faasr_get_file, faasr_put_file, faasr_return, faasr_log, etc.).
+For return_type \"None\", the entrypoint returns Python None in the normal sense — do not use faasr_return for that.
 
 Blocks are pure and idempotent. Preconditions/postconditions are happy-path only (PoC). Use PascalCase block_name.
 
@@ -111,6 +119,7 @@ Respond with JSON only — no markdown fences, no commentary. Two shapes:
 
 Rules:
 - version must be semver x.y.z (e.g. 1.0.0).
+- function.name must be a custom snake_case entrypoint name (see above), never faasr_*.
 - function.arguments: map name -> {{\"type\":\"str|int|float|bool|dict|list|...\",\"description\":\"...\"}}
 - s3_outputs: filename, format, description (filename may mention caller-provided names).
 - required_secrets: list of secret names or [].
