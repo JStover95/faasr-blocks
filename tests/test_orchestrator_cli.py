@@ -47,6 +47,27 @@ def test_cli_main_help_exits_zero() -> None:
     assert exc_info.value.code == 0
 
 
+def test_cli_main_stub_runs_without_api_keys(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``--stub`` uses placeholder config and must not require real credentials."""
+
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    class FakePromptSession:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def prompt(self, *args, **kwargs) -> str:
+            return "/quit"
+
+    monkeypatch.setattr(
+        "faasr_blocks.orchestrator.repl.PromptSession",
+        FakePromptSession,
+    )
+
+    code = cli_main(["--stub"])
+    assert code == 0
+
+
 def test_cli_main_missing_config_returns_2(monkeypatch: pytest.MonkeyPatch) -> None:
     def _missing_llm() -> None:
         raise ValueError(
@@ -86,7 +107,7 @@ def test_stub_handler_appends_assistant(required_env: None) -> None:
     hist = session.get_history()
     assert len(hist) == 2
     assert hist[1]["role"] == "assistant"
-    assert "SqliteVecSearchEngine" in hist[1]["content"]
+    assert "OrchestratorCommandHandler" in hist[1]["content"]
 
 
 def test_interactive_repl_quit_immediately(

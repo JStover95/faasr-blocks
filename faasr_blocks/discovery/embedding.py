@@ -174,6 +174,18 @@ class EmbeddingGenerator:
             text=text,
         )
 
+    def contract_text_for_embedding(self, contract: Contract) -> str:
+        """
+        Public text representation used for embeddings and semantic search queries.
+
+        Args:
+            contract: Block contract.
+
+        Returns:
+            Multi-line string aligned with :meth:`generate`.
+        """
+        return self._contract_to_text(contract)
+
     def _contract_to_text(self, contract: Contract) -> str:
         """
         Convert contract metadata into searchable text.

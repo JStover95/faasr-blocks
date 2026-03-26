@@ -24,7 +24,7 @@ def builtin_help_text(multiline_hint: str) -> str:
         "  /clear    Clear conversation history\n"
         "  /quit     Exit the agent\n"
         "\n"
-        "Anything else is treated as a natural-language workflow request (stub response).\n"
+        "Anything else is sent to the orchestrator: contract drafts, then reply approve/yes to build.\n"
         f"{multiline_hint}"
     )
 
@@ -90,8 +90,9 @@ class InteractiveREPL:
 
         print_formatted_text(
             HTML(
-                "<b>FaaSr Blocks Agent</b> <ansiyellow>(Phase 4a PoC)</ansiyellow>\n"
-                "Type a workflow description, or <b>/help</b> for commands. <b>/quit</b> to exit."
+                "<b>FaaSr Blocks Agent</b> <ansiyellow>(Phase 4)</ansiyellow>\n"
+                "Describe a workflow; review draft contracts; reply <b>approve</b> to discover/build. "
+                "<b>/help</b> for commands, <b>/quit</b> to exit."
             )
         )
         if self._multiline:

@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
-from faasr_blocks.orchestrator.commands import CommandHandler, StubHandler
+from faasr_blocks.orchestrator.commands import (
+    CommandHandler,
+    OrchestratorCommandHandler,
+    StubHandler,
+)
 from faasr_blocks.orchestrator.repl import InteractiveREPL, builtin_help_text
 from faasr_blocks.orchestrator.session import OrchestratorSession
 
 __all__ = [
     "CommandHandler",
     "InteractiveREPL",
+    "OrchestratorCommandHandler",
     "OrchestratorSession",
     "StubHandler",
     "builtin_help_text",

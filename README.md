@@ -108,20 +108,31 @@ This is a proof-of-concept implementation focused on:
 - **Phase 1 (Complete)**: Foundation - contracts, test harness, validation
 - **Phase 2 (Complete)**: Block builder - LLM-backed test and source generation, static checks, pytest loop
 - **Phase 3 (Complete)**: Embedding & discovery - semantic search for block reuse
-- **Phase 4 (In progress)**: Main agent & CLI — interactive shell (`faasr-blocks-agent`); discovery/build wiring planned next
+- **Phase 4 (Complete)**: Main agent & CLI — contract planning, clarification, approval, discovery, and builds
 
-### Phase 4a: Interactive agent shell
+### Phase 4: Interactive orchestrator agent
 
-Requires the same environment variables as Phases 2 and 3 (OpenAI-compatible chat settings **and** S3 settings are loaded at startup even though this PoC does not call those services yet).
+Requires the same environment variables as Phases 2 and 3: OpenAI-compatible chat (**and** S3 for embedding download / upload during discovery and builds).
 
 ```bash
 faasr-blocks-agent
 # or: python -m faasr_blocks.orchestrator.cli
 ```
 
-Options: `--debug` (stderr diagnostics), `--multiline` (Esc+Enter to submit), `--history-file PATH` (prompt history file).
+Flow:
 
-**Manual check:** With env vars set, run `printf '/help\n/quit\n' | faasr-blocks-agent` and confirm help text and clean exit.
+1. Describe a workflow in natural language.
+2. Answer clarifying questions if the model asks (at most two clarification rounds).
+3. Review draft contracts; reply **approve**, **yes**, or **ok** to run semantic reuse search and build missing blocks; otherwise describe revisions.
+4. Read the markdown summary (reused vs new blocks, suggested order).
+
+Options: `--debug` (stderr diagnostics), `--multiline` (Esc+Enter to submit), `--history-file PATH` (prompt history file), `--stub` (stub handler only; no API keys required—useful for shell smoke tests).
+
+```bash
+printf '/help\n/quit\n' | faasr-blocks-agent --stub
+```
+
+**Manual check (full pipeline):** Set env vars, run `faasr-blocks-discover embed --all` once so S3 has embeddings, then run `faasr-blocks-agent`, describe a small workflow, approve, and confirm new blocks under `blocks/` and summary output.
 
 ### Phase 2: Building a block from a contract
 

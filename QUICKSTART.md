@@ -99,15 +99,15 @@ Build a block from its contract:
 faasr-blocks-build blocks/BlockName [--max-source-iterations 3]
 ```
 
-### faasr-blocks-agent (Phase 4a)
+### faasr-blocks-agent (Phase 4)
 
-Interactive orchestrator shell (stub responses; no discovery/build yet):
+Interactive orchestrator: contracts from NL, optional Q&A, **approve** to discover + build + summary.
 
 ```bash
 faasr-blocks-agent
 ```
 
-Requires LLM and S3 env vars at startup (same as build + discover). Options: `--debug`, `--multiline`, `--history-file PATH`.
+Requires LLM and S3 env vars (same as build + discover). Options: `--debug`, `--multiline`, `--history-file PATH`, `--stub` (no keys; stub handler only).
 
 ### faasr-blocks-discover
 
