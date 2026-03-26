@@ -297,6 +297,7 @@ name = "faasr-blocks"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "boto3" },
     { name = "faasr-py" },
     { name = "httpx" },
     { name = "jsonschema" },
@@ -304,6 +305,7 @@ dependencies = [
     { name = "pytest" },
     { name = "python-dotenv" },
     { name = "requests" },
+    { name = "sqlite-vec" },
 ]
 
 [package.optional-dependencies]
@@ -316,6 +318,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=25.0.0" },
+    { name = "boto3", specifier = ">=1.35.0" },
     { name = "faasr-py", editable = "../faasr-backend" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "jsonschema", specifier = ">=4.23.0" },
@@ -325,6 +328,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9.0" },
+    { name = "sqlite-vec", specifier = ">=0.1.0" },
 ]
 provides-extras = ["dev"]
 
@@ -989,6 +993,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/27/19/2d7584749a7f6d1b4b3a129995b1bc31e70ed9c5ecc323f1ee748b767268/snapshot-restore-py-1.0.0.tar.gz", hash = "sha256:4d27f82fb6f09968f422501e9c3c2dea48a46cd19dc798eb7d6cbc57523c8004", size = 3379, upload-time = "2024-11-13T14:40:22.477Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/10/b8/f9da2457e9dfb5872042202d69b329940527672e20cbfdb26610c09e1d8e/snapshot_restore_py-1.0.0-py3-none-any.whl", hash = "sha256:38f99e696793790f54658e71c68c7a8a40cea877c81232b5052383b1301aceba", size = 3782, upload-time = "2024-11-13T14:40:21.33Z" },
+]
+
+[[package]]
+name = "sqlite-vec"
+version = "0.1.7"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b7/50/7ad59cfd3003a2110cc366e526293de4c2520486f5ddaa8dc78b265f8d3e/sqlite_vec-0.1.7-py3-none-macosx_10_6_x86_64.whl", hash = "sha256:c34a136caecff4ae17d4c0cc268fcda89764ee870039caa21431e8e3fb2f4d48", size = 131171, upload-time = "2026-03-17T07:42:50.438Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/c9/1cd2f59b539096cd2ce6b540247b2dfe3c47ba04d9368b5e8e3dc86498d4/sqlite_vec-0.1.7-py3-none-macosx_11_0_arm64.whl", hash = "sha256:6d272593d1b45ec7ea289b160ee6e5fafbaa6e1f5ba15f1305c012b0bda43653", size = 165434, upload-time = "2026-03-17T07:42:51.555Z" },
+    { url = "https://files.pythonhosted.org/packages/75/91/30c3c382140dcc7bc6e3a07eac7ca610a2b5b70eb9bc7066dc3e7f748d58/sqlite_vec-0.1.7-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8d27746d8e254a390bd15574aed899a0b9bb915b5321eb130a9c09722898cc03", size = 160076, upload-time = "2026-03-17T07:42:52.451Z" },
+    { url = "https://files.pythonhosted.org/packages/59/56/6ff304d917ee79da769708dad0aed5fd34c72cbd0ae5e38bcc56cdc652a4/sqlite_vec-0.1.7-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux1_x86_64.whl", hash = "sha256:ad654283cb9c059852ce2d82018c757b06a705ada568f8b126022a131189818e", size = 163388, upload-time = "2026-03-17T07:42:53.516Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/27/fb1b6e3f9072854fe405f7aa99c46d4b465e84c9cec2ff7778edf29ecbbd/sqlite_vec-0.1.7-py3-none-win_amd64.whl", hash = "sha256:0c67877a87cb49426237b950237e82dbeb77778ab2ba89bea859f391fd169382", size = 292804, upload-time = "2026-03-17T07:42:54.325Z" },
 ]
 
 [[package]]

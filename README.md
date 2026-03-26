@@ -23,9 +23,13 @@ faasr-blocks/
 │           ├── test_<function>.py
 │           └── fixtures/        # Test data
 ├── faasr_blocks/                # Core framework code
+│   ├── builder/                 # Block generation pipeline
+│   ├── discovery/               # Embedding & search (Phase 3)
 │   ├── models/                  # Contract data models
 │   ├── testing/                 # Test harness and mocks
 │   └── validation/              # Contract and block validators
+├── docs/                        # Phase-specific documentation
+├── examples/                    # Usage examples
 ├── reference/                   # Embedded FaaSr documentation (git subtrees)
 │   ├── faasr-docs/              # Official documentation
 │   └── faasr-functions/         # Example workflows
@@ -103,7 +107,7 @@ This is a proof-of-concept implementation focused on:
 
 - **Phase 1 (Complete)**: Foundation - contracts, test harness, validation
 - **Phase 2 (Complete)**: Block builder - LLM-backed test and source generation, static checks, pytest loop
-- **Phase 3 (Planned)**: Embedding & discovery - semantic search for block reuse
+- **Phase 3 (Complete)**: Embedding & discovery - semantic search for block reuse
 - **Phase 4 (Planned)**: Main agent & CLI - natural language interface
 
 ### Phase 2: Building a block from a contract
@@ -123,6 +127,44 @@ faasr-blocks-build blocks/GetWeatherData
 The block directory must already exist and contain `contract.json`. The builder validates it against the schema, generates `tests/` then `src/`, validates tests against the contract (LLM), runs static validation and `pytest`, and retries implementation up to three times on failures.
 
 **Manual check:** With valid API settings, run the command above on a copy of a block directory (or after moving aside `src/` and `tests/`) to confirm end-to-end generation.
+
+### Phase 3: Embedding and discovery
+
+Requires these environment variables (OpenAI-compatible API + S3 storage):
+
+- LLM: `OPENAI_API_KEY`, `OPENAI_BASE_URL`
+- S3: `FAASR_S3_ENDPOINT`, `FAASR_S3_ACCESS_KEY`, `FAASR_S3_SECRET_KEY`, `FAASR_S3_BUCKET`
+
+#### Generate and upload embeddings
+
+```bash
+# Generate embeddings for all blocks and upload to S3
+faasr-blocks-discover embed --all
+
+# Generate embedding for a single block
+faasr-blocks-discover embed --block GetWeatherData
+```
+
+Embeddings are stored in S3 at: `<bucket>/faasr-blocks/embeddings/<BlockName>.json`
+
+#### Search for similar blocks
+
+```bash
+# Search using natural language
+faasr-blocks-discover search "fetch weather data from an API"
+
+# Return more results
+faasr-blocks-discover search "process time-series data" --top-n 10
+```
+
+The search engine:
+
+1. Downloads all embeddings from S3
+2. Loads them into an in-memory sqlite-vec database
+3. Embeds the query text
+4. Returns top-N most similar blocks with similarity scores
+
+**Manual check:** After generating embeddings with `--all`, run search queries to verify relevant blocks are returned with high similarity scores.
 
 ## Testing
 

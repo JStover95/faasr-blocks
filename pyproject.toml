@@ -12,6 +12,8 @@ dependencies = [
     "pytest>=7.4.0",
     "python-dotenv>=1.2.2",
     "requests>=2.32.3",
+    "boto3>=1.35.0",
+    "sqlite-vec>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -23,6 +25,7 @@ dev = [
 
 [project.scripts]
 faasr-blocks-build = "faasr_blocks.builder.cli:main"
+faasr-blocks-discover = "faasr_blocks.discovery.cli:main"
 
 [build-system]
 requires = ["hatchling"]
