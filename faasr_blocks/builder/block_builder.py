@@ -130,7 +130,7 @@ class BlockBuilder:
         self,
         attempt: int,
         test_src: str,
-        tval: ValidationResult,
+        test_validation: ValidationResult,
     ) -> tuple[bool, BuildResult | None, TestResult | None, ValidationResult | None]:
         """
         One static-validation / pytest / optional source-regeneration cycle.
@@ -139,10 +139,15 @@ class BlockBuilder:
             (exit_early, early_result, last_test, last_static).
             If exit_early is True, caller returns early_result from build().
         """
+        # Pull context values
         block_path = self._context.block_path
         src_file = self._context.src_file
+
         debug_print("--- iteration", attempt, "/", self._max_source_iterations, "---")
+
+        # 1. Run static validation
         last_static = self._static_validator.validate()
+
         debug_print(
             "static_validation ok=",
             last_static.ok,
@@ -151,15 +156,21 @@ class BlockBuilder:
             "warnings=",
             last_static.warnings,
         )
+
         if not last_static.ok:
+            # If static validation failed, re-generate source code with error instructions and exit early
             self._source_generator.generate(
                 test_src,
                 extra_instructions="Static validation failed:\n" + "\n".join(last_static.errors),
             )
+
             _debug_src_hints(src_file)
+
             return False, None, None, last_static
 
+        # 2. Run tests
         last_test = self._test_runner.run_tests()
+
         debug_print(
             "pytest passed=",
             last_test.passed,
@@ -174,54 +185,62 @@ class BlockBuilder:
             debug_print("pytest stderr (tail 2000 chars):")
             debug_print((last_test.stderr or "")[-2000:])
 
-        if last_test.passed:
-            ok, errors = self._block_validator.validate_structure(block_path)
-            if not ok:
-                return (
-                    True,
-                    BuildResult(
-                        success=False,
-                        block_path=str(block_path),
-                        message="Block structure invalid: " + "; ".join(errors),
-                        attempts=attempt,
-                        test_result=last_test,
-                        static_validation=last_static,
-                        test_contract_validation=tval,
-                    ),
-                    last_test,
-                    last_static,
-                )
+        if not last_test.passed:
+            # If pytest failed, re-generate source code with error instructions and exit early
+            fail_text = (
+                "Pytest failed. Fix implementation only.\n\n"
+                + f"exit_code={last_test.exit_code}\n"
+                + f"summary: {last_test.summary_line}\n\n"
+                + "stdout:\n"
+                + last_test.stdout
+                + "\n\nstderr:\n"
+                + last_test.stderr
+                + _pytest_remediation_hints(last_test.stdout or "")
+            )
+            self._source_generator.generate(
+                test_src,
+                extra_instructions=fail_text,
+            )
+
+            _debug_src_hints(src_file)
+
+            return False, None, last_test, last_static
+
+        # 3. Validate the block's directory structure
+        ok, errors = self._block_validator.validate_structure(block_path)
+
+        if not ok:
+            # If the block's directory structure is invalid, return an error and exit early
             return (
                 True,
                 BuildResult(
-                    success=True,
+                    success=False,
                     block_path=str(block_path),
-                    message="Block built and tests passed.",
+                    message="Block structure invalid: " + "; ".join(errors),
                     attempts=attempt,
                     test_result=last_test,
                     static_validation=last_static,
-                    test_contract_validation=tval,
+                    test_contract_validation=test_validation,
                 ),
                 last_test,
                 last_static,
             )
 
-        fail_text = (
-            "Pytest failed. Fix implementation only.\n\n"
-            + f"exit_code={last_test.exit_code}\n"
-            + f"summary: {last_test.summary_line}\n\n"
-            + "stdout:\n"
-            + last_test.stdout
-            + "\n\nstderr:\n"
-            + last_test.stderr
-            + _pytest_remediation_hints(last_test.stdout or "")
+        # All validation checks passed, return a success result
+        return (
+            True,
+            BuildResult(
+                success=True,
+                block_path=str(block_path),
+                message="Block built and tests passed.",
+                attempts=attempt,
+                test_result=last_test,
+                static_validation=last_static,
+                test_contract_validation=test_validation,
+            ),
+            last_test,
+            last_static,
         )
-        self._source_generator.generate(
-            test_src,
-            extra_instructions=fail_text,
-        )
-        _debug_src_hints(src_file)
-        return False, None, last_test, last_static
 
     def build(self) -> BuildResult:
         """
@@ -268,22 +287,22 @@ class BlockBuilder:
         debug_print("after test_gen tests at", test_path)
 
         # 3. Validate that the tests cover the contract
-        tval = self._test_coverage_validator.validate()
+        test_validation = self._test_coverage_validator.validate()
 
         # 4. Retry test generation if needed and retry tests once is set
-        if not tval.ok and self._retry_tests_once:
+        if not test_validation.ok and self._retry_tests_once:
             self._test_generator.generate(
                 extra_instructions="Prior test-contract validation reported gaps:\n"
-                + "\n".join(tval.errors),
+                + "\n".join(test_validation.errors),
             )
-            tval = self._test_coverage_validator.validate()
+            test_validation = self._test_coverage_validator.validate()
 
-        if not tval.ok:
+        if not test_validation.ok:
             return BuildResult(
                 success=False,
                 block_path=str(block_path),
-                message="Test-contract alignment failed: " + "; ".join(tval.errors),
-                test_contract_validation=tval,
+                message="Test-contract alignment failed: " + "; ".join(test_validation.errors),
+                test_contract_validation=test_validation,
             )
 
         debug_print("test-contract coverage ok")
@@ -301,7 +320,7 @@ class BlockBuilder:
             exit_early, early, last_test, last_static = self._run_source_iteration(
                 attempt,
                 test_src,
-                tval,
+                test_validation,
             )
             if exit_early and early is not None:
                 return early
@@ -313,5 +332,5 @@ class BlockBuilder:
             attempts=self._max_source_iterations,
             test_result=last_test,
             static_validation=last_static,
-            test_contract_validation=tval,
+            test_contract_validation=test_validation,
         )
