@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from faasr_blocks.builder.artifact_parse import extract_single_python_module, parse_marked_files
+from faasr_blocks.builder.artifact_parse import parse_marked_files
 from faasr_blocks.builder.block_context import BlockContext
 from faasr_blocks.builder.llm import LLMClient
 from faasr_blocks.builder.reference_snippets import default_snippets
@@ -110,8 +110,7 @@ Emit the implementation as:
         try:
             files = parse_marked_files(raw)
         except ValueError:
-            body = extract_single_python_module(raw)
-            files = {module_file: body}
+            raise ValueError(f"Failed to parse LLM output: {raw[:500]!r}")
 
         # Prefer exact module path
         key = module_file

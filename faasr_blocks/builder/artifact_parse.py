@@ -60,25 +60,3 @@ def parse_marked_files(text: str) -> dict[str, str]:
         body, _ = parsed
         files[rel] = body
     return files
-
-
-def extract_single_python_module(text: str) -> str:
-    """
-    Extract Python code from a single fenced block, or return text as-is if no fence found.
-
-    Fallback parser when the LLM doesn't use marked FILE: headers. Looks for a single
-    ```python or ``` block and extracts its body.
-
-    Args:
-        text: LLM response text.
-
-    Returns:
-        Code body from fenced block if found, otherwise stripped text.
-    """
-    m = re.search(r"```(?:python)?\s*\n(.*?)```", text, re.DOTALL)
-    if m:
-        body = m.group(1)
-        if body.endswith("\n"):
-            body = body[:-1]
-        return body.strip()
-    return text.strip()

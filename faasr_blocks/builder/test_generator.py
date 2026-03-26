@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from faasr_blocks.builder.artifact_parse import extract_single_python_module, parse_marked_files
+from faasr_blocks.builder.artifact_parse import parse_marked_files
 from faasr_blocks.builder.block_context import BlockContext
 from faasr_blocks.builder.llm import LLMClient
 from faasr_blocks.builder.reference_snippets import default_snippets, example_block_test
@@ -28,6 +28,63 @@ Requirements:
   implementation uses `.text`, tests fail with TypeError (MagicMock is not str).
 - Output ONLY marked files as specified in the user message — no extra commentary outside those sections.
 """
+
+USER_PROMPT_TEMPLATE = """
+Block name: {block_name}
+Primary module file (create under src/): {function_name}.py
+Tests import path for faasr_test_environment second argument:
+  blocks.{block_name}.src.{function_name}
+
+Contract (JSON):
+{contract_json}
+{extra}
+
+Reference: Python API (excerpt)
+---
+{snippets}
+---
+
+Example existing block test (pattern only; adapt to this contract):
+```python
+{example}
+```
+
+Output format (required). Emit one or more sections exactly like this:
+
+### FILE: tests/test_{function_name}.py
+```python
+# full test module
+```
+
+### FILE: tests/fixtures/some_file.json
+```json
+{{}}
+```
+
+Use at least:
+- tests/test_{function_name}.py
+- any fixtures your tests need under tests/fixtures/
+
+Do not emit src/ implementation here — tests only.
+"""
+
+
+def get_user_prompt(
+    block_name: str,
+    function_name: str,
+    contract_json: str,
+    extra: str,
+    snippets: str,
+    example: str,
+) -> str:
+    return USER_PROMPT_TEMPLATE.format(
+        block_name=block_name,
+        function_name=function_name,
+        contract_json=contract_json,
+        extra=extra,
+        snippets=snippets,
+        example=example,
+    ).strip()
 
 
 class TestGenerator:
@@ -64,66 +121,34 @@ class TestGenerator:
         Args:
             extra_instructions: Optional additional requirements (e.g., from retry failures).
         """
+        # Extract context values
         contract = self._context.contract
         block_path = self._context.block_path
         repo_root = self._context.repo_root
-        fn = self._context.function_name
+        function_name = self._context.function_name
         block_name = self._context.block_name
-        module_name = fn  # convention: get_weather_data.py
+
+        # Prepare the prompt
         snippets = default_snippets(repo_root)
         example = example_block_test(repo_root)
-
         contract_json = json.dumps(contract.model_dump(mode="json"), indent=2)
         extra = (
             f"\n\nAdditional instructions:\n{extra_instructions}\n" if extra_instructions else ""
         )
-        user = f"""
-Block name: {block_name}
-Primary module file (create under src/): {module_name}.py
-Tests import path for faasr_test_environment second argument:
-  blocks.{block_name}.src.{module_name}
+        user = get_user_prompt(
+            block_name, function_name, contract_json, extra, snippets["py_api"], example
+        )
 
-Contract (JSON):
-{contract_json}
-{extra}
-
-Reference: Python API (excerpt)
----
-{snippets["py_api"]}
----
-
-Example existing block test (pattern only; adapt to this contract):
-```python
-{example}
-```
-
-Output format (required). Emit one or more sections exactly like this:
-
-### FILE: tests/test_{fn}.py
-```python
-# full test module
-```
-
-### FILE: tests/fixtures/some_file.json
-```json
-{{}}
-```
-
-Use at least:
-- tests/test_{fn}.py
-- any fixtures your tests need under tests/fixtures/
-
-Do not emit src/ implementation here — tests only.
-""".strip()
-
+        # Call the LLM to generate the test files
         raw = self._llm.complete(SYSTEM_PROMPT, user)
+
+        # Parse the LLM output
         try:
             files = parse_marked_files(raw)
         except ValueError:
-            # Fallback: single test file
-            body = extract_single_python_module(raw)
-            files = {f"tests/test_{fn}.py": body}
+            raise ValueError(f"Failed to parse LLM output: {raw[:500]!r}")
 
+        # Write the test files to the block directory
         for rel, content in files.items():
             out = block_path / rel
             out.parent.mkdir(parents=True, exist_ok=True)

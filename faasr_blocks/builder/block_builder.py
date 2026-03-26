@@ -272,6 +272,7 @@ class BlockBuilder:
         )
 
         # 1. Validate that the contract is valid
+        # TODO: Contract validation will eventually be moved to the contract generation agent.
         cv = ContractValidator(schema_path)
         ok, msg = cv.validate_contract(contract_path)
         if not ok:

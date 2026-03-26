@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from faasr_blocks.builder.artifact_parse import extract_single_python_module, parse_marked_files
+from faasr_blocks.builder.artifact_parse import parse_marked_files
 from faasr_blocks.builder.block_builder import _pytest_remediation_hints
 from faasr_blocks.builder.block_context import BlockContext
 from faasr_blocks.builder.llm import StaticMockLLM
@@ -76,13 +76,6 @@ def test_pytest_remediation_hints_magicmock_write():
     )
     assert "response.json()" in out
     assert "json.dump" in out
-
-
-def test_extract_single_python_module():
-    body = extract_single_python_module(
-        "Here:\n```python\ndef f():\n    pass\n```\n",
-    )
-    assert "def f():" in body
 
 
 def test_static_validator_accepts_get_weather_source(sample_contract: Contract):
