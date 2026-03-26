@@ -131,13 +131,12 @@ class BlockBuilder:
         attempt: int,
         test_src: str,
         test_validation: ValidationResult,
-    ) -> tuple[bool, BuildResult | None, TestResult | None, ValidationResult | None]:
+    ) -> tuple[BuildResult | None, TestResult | None, ValidationResult | None]:
         """
         One static-validation / pytest / optional source-regeneration cycle.
 
         Returns:
-            (exit_early, early_result, last_test, last_static).
-            If exit_early is True, caller returns early_result from build().
+            (early_result, last_test, last_static).
         """
         # Pull context values
         block_path = self._context.block_path
@@ -166,7 +165,7 @@ class BlockBuilder:
 
             _debug_src_hints(src_file)
 
-            return False, None, None, last_static
+            return None, None, last_static
 
         # 2. Run tests
         last_test = self._test_runner.run_tests()
@@ -204,7 +203,7 @@ class BlockBuilder:
 
             _debug_src_hints(src_file)
 
-            return False, None, last_test, last_static
+            return None, last_test, last_static
 
         # 3. Validate the block's directory structure
         ok, errors = self._block_validator.validate_structure(block_path)
@@ -212,7 +211,6 @@ class BlockBuilder:
         if not ok:
             # If the block's directory structure is invalid, return an error and exit early
             return (
-                True,
                 BuildResult(
                     success=False,
                     block_path=str(block_path),
@@ -228,7 +226,6 @@ class BlockBuilder:
 
         # All validation checks passed, return a success result
         return (
-            True,
             BuildResult(
                 success=True,
                 block_path=str(block_path),
@@ -315,16 +312,26 @@ class BlockBuilder:
         _debug_src_hints(self._context.src_file)
 
         # 6. Run source code generation iterations until tests pass
+
+        # Test and static validation results to return
         last_test: TestResult | None = None
         last_static: ValidationResult | None = None
+        result: BuildResult | None = None
+
         for attempt in range(1, self._max_source_iterations + 1):
-            exit_early, early, last_test, last_static = self._run_source_iteration(
+            result, last_test, last_static = self._run_source_iteration(
                 attempt,
                 test_src,
                 test_validation,
             )
-            if exit_early and early is not None:
-                return early
+
+            # If we received a result, exit early
+            if result is not None:
+                break
+
+        # Return the build result or a failure
+        if result is not None:
+            return result
 
         return BuildResult(
             success=False,
