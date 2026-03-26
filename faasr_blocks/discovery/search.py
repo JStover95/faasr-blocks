@@ -130,9 +130,11 @@ class SqliteVecSearchEngine:
         Returns:
             SQLite connection with vec0 extension loaded.
         """
+        # Connect to an in-memory SQLite database
         conn = sqlite3.connect(":memory:")
         conn.enable_load_extension(True)
 
+        # Load the sqlite-vec extension
         try:
             sqlite_vec.load(conn)
         except Exception as e:
@@ -140,11 +142,12 @@ class SqliteVecSearchEngine:
                 "Failed to load sqlite-vec extension. Install sqlite-vec: pip install sqlite-vec"
             ) from e
 
+        # If no embeddings are provided, return early
         if not embeddings:
             return conn
 
+        # Create the virtual table
         dimension = len(embeddings[0].embedding)
-
         conn.execute(
             f"""
             CREATE VIRTUAL TABLE embeddings USING vec0(
@@ -157,6 +160,7 @@ class SqliteVecSearchEngine:
             """
         )
 
+        # Insert the embeddings
         for emb in embeddings:
             conn.execute(
                 """
@@ -172,15 +176,20 @@ class SqliteVecSearchEngine:
                 ),
             )
 
+        # Commit the transaction
         conn.commit()
+
         return conn
 
     def search(self, query_text: str, top_n: int = 10) -> list[SearchResult]:
+        # Exit if the database is closed
         if self._conn is None:
             raise RuntimeError("SqliteVecSearchEngine is closed")
 
+        # Generate the query embedding
         query_embedding = self._embedding_client.embed(query_text)
 
+        # Execute the search query
         cursor = self._conn.execute(
             """
             SELECT
@@ -197,6 +206,7 @@ class SqliteVecSearchEngine:
             (json_array_to_blob(query_embedding), top_n),
         )
 
+        # Build the results array
         results = []
         for row in cursor.fetchall():
             block_name, version, text, metadata_hash, distance = row

@@ -53,11 +53,6 @@ faasr_blocks/discovery/
 - Uses boto3 client
 - Graceful handling of missing keys
 
-**`LocalEmbeddingStore`**: Filesystem-backed storage
-
-- For development/testing without S3
-- Same API as S3 implementation
-
 ### Search
 
 **`SearchResult`**: Query result with metadata

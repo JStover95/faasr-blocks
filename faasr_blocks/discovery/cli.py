@@ -194,20 +194,24 @@ def cmd_search(args: argparse.Namespace, repo_root: Path) -> int:
 
     print(f"Loaded {len(embeddings)} block embeddings.")
 
+    # Initialize the search engine
     with SqliteVecSearchEngine(embeddings, embedding_client) as search_engine:
         print(f"\nSearching for: {args.query}")
         print("-" * 80)
 
+        # Search for the query
         try:
             results = search_engine.search(args.query, top_n=args.top_n)
         except Exception as e:
             print(f"Search failed: {e}", file=sys.stderr)
             return 1
 
+        # Exit if no results are found
         if not results:
             print("No results found.")
             return 0
 
+        # Iterate over and print the results
         for i, result in enumerate(results, 1):
             print(f"\n{i}. {result.block_name} (v{result.version})")
             print(f"   Similarity: {result.similarity:.4f}")

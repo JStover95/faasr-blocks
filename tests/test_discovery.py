@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import tempfile
-from pathlib import Path
-
 import pytest
 
 from faasr_blocks.discovery.embedding import (
@@ -12,7 +9,6 @@ from faasr_blocks.discovery.embedding import (
     EmbeddingGenerator,
 )
 from faasr_blocks.discovery.search import SqliteVecSearchEngine
-from faasr_blocks.discovery.storage import LocalEmbeddingStore
 from faasr_blocks.models.contract import (
     Contract,
     ContractMetadata,
@@ -102,67 +98,6 @@ def test_embedding_generator_different_hash_on_change():
     emb2 = generator.generate(contract2)
 
     assert emb1.metadata_hash != emb2.metadata_hash
-
-
-def test_local_embedding_store_roundtrip():
-    """LocalEmbeddingStore should persist and retrieve embeddings."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        store = LocalEmbeddingStore(Path(tmpdir))
-        embedding = BlockEmbedding(
-            block_name="TestBlock",
-            version="1.0.0",
-            embedding=[1.0, 2.0, 3.0],
-            metadata_hash="abc123",
-            text="Test text",
-        )
-
-        store.upload(embedding)
-        retrieved = store.download("TestBlock")
-
-        assert retrieved is not None
-        assert retrieved.block_name == "TestBlock"
-        assert retrieved.embedding == [1.0, 2.0, 3.0]
-        assert retrieved.metadata_hash == "abc123"
-
-
-def test_local_embedding_store_download_missing():
-    """LocalEmbeddingStore should return None for missing blocks."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        store = LocalEmbeddingStore(Path(tmpdir))
-        result = store.download("NonExistent")
-        assert result is None
-
-
-def test_local_embedding_store_list_all():
-    """LocalEmbeddingStore should list all stored blocks."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        store = LocalEmbeddingStore(Path(tmpdir))
-
-        emb1 = BlockEmbedding("Block1", "1.0.0", [1.0], "hash1", "text1")
-        emb2 = BlockEmbedding("Block2", "1.0.0", [2.0], "hash2", "text2")
-
-        store.upload(emb1)
-        store.upload(emb2)
-
-        names = store.list_all()
-        assert set(names) == {"Block1", "Block2"}
-
-
-def test_local_embedding_store_download_all():
-    """LocalEmbeddingStore should download all embeddings."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        store = LocalEmbeddingStore(Path(tmpdir))
-
-        emb1 = BlockEmbedding("Block1", "1.0.0", [1.0], "hash1", "text1")
-        emb2 = BlockEmbedding("Block2", "1.0.0", [2.0], "hash2", "text2")
-
-        store.upload(emb1)
-        store.upload(emb2)
-
-        all_embeddings = store.download_all()
-        assert len(all_embeddings) == 2
-        names = {e.block_name for e in all_embeddings}
-        assert names == {"Block1", "Block2"}
 
 
 def test_sqlite_vec_search_engine_basic_search():

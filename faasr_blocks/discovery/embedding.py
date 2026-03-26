@@ -107,6 +107,7 @@ class OpenAIEmbeddingClient:
         self._timeout = timeout_s
 
     def embed(self, text: str) -> list[float]:
+        # Prepare the request payload
         url = f"{self._base}/embeddings"
         payload = {
             "model": self._model,
@@ -116,10 +117,14 @@ class OpenAIEmbeddingClient:
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
         }
+
+        # Make the API call
         with httpx.Client(timeout=self._timeout) as client:
             r = client.post(url, json=payload, headers=headers)
             r.raise_for_status()
             data = r.json()
+
+        # Extract the embedding
         try:
             return data["data"][0]["embedding"]
         except (KeyError, IndexError, TypeError) as e:
