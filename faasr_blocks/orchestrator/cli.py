@@ -69,6 +69,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    # Load config
     try:
         llm_cfg = load_llm_env_config()
         s3_cfg = load_s3_env_config()
@@ -77,6 +78,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     repo_root = _package_repo_root()
+
+    # Initialize and run the REPL
     session = OrchestratorSession()
     handler = StubHandler()
     repl = InteractiveREPL(
@@ -89,7 +92,9 @@ def main(argv: list[str] | None = None) -> int:
         multiline=args.multiline,
         debug=args.debug,
     )
+
     repl.run()
+
     return 0
 
 

@@ -58,6 +58,9 @@ class InteractiveREPL:
         self._debug = debug
 
     def _make_session(self) -> PromptSession:
+        """Initialize the prompt session."""
+
+        # Initialize the history if any exists
         if self._history_file is not None:
             self._history_file.parent.mkdir(parents=True, exist_ok=True)
             history: FileHistory | InMemoryHistory = FileHistory(str(self._history_file))
@@ -65,6 +68,8 @@ class InteractiveREPL:
             history = InMemoryHistory()
 
         key_bindings = None
+
+        # Initialize enter/escape key bindings if multiline is enabled
         if self._multiline:
             bindings = KeyBindings()
 
@@ -81,6 +86,8 @@ class InteractiveREPL:
         )
 
     def _print_welcome(self) -> None:
+        """Print the welcome message."""
+
         print_formatted_text(
             HTML(
                 "<b>FaaSr Blocks Agent</b> <ansiyellow>(Phase 4a PoC)</ansiyellow>\n"
@@ -96,51 +103,65 @@ class InteractiveREPL:
         print()
 
     def _debug_line(self, msg: str) -> None:
+        """Print a debug message if debug is enabled."""
         if self._debug:
             print(f"[debug] {msg}", file=sys.stderr)
 
     def run(self) -> None:
-        """Run until user quits or raises KeyboardInterrupt."""
+        """Run the REPL until user quits or raises KeyboardInterrupt."""
+
+        # Print welcome message and debug information
         self._print_welcome()
         self._debug_line(f"repo_root={self._repo_root}")
         self._debug_line(f"llm base_url={self._llm_config.base_url} model={self._llm_config.model}")
         self._debug_line(f"s3 bucket={self._s3_config.bucket} endpoint={self._s3_config.endpoint}")
-
         multiline_hint = (
             "Multiline: Esc+Enter submits when --multiline is set.\n" if self._multiline else ""
         )
+
+        # Initialize the prompt session
         pt_session = self._make_session()
 
+        # Run the REPL until user quits or raises KeyboardInterrupt
         while True:
+            # Prompt the user for input
             try:
                 line = pt_session.prompt("> ").strip()
             except (EOFError, KeyboardInterrupt):
                 print("\nGoodbye!")
                 return
 
+            # Skip empty lines
             if not line:
                 continue
 
+            # Exit if the user quits
             if line == "/quit":
                 print("Goodbye!")
                 return
 
+            # Print the help text
             if line == "/help":
                 print(builtin_help_text(multiline_hint))
                 continue
 
+            # Clear the session
             if line == "/clear":
                 self._session.clear()
                 print_formatted_text(HTML("<ansigreen>Session cleared.</ansigreen>"))
                 continue
 
+            # Handle unknown commands
             if line.startswith("/"):
                 print_formatted_text(
                     HTML(f"<ansired>Unknown command: {line}</ansired> (try <b>/help</b>)")
                 )
                 continue
 
+            # Add the user message to the session
             self._session.add_user_message(line)
+
+            # Handle the user message
             try:
                 reply = self._handler.handle(line, self._session)
             except Exception as e:
@@ -148,6 +169,7 @@ class InteractiveREPL:
                 self._session.add_assistant_message(f"Error: {e!s}")
                 continue
 
+            # Print the reply
             print()
             print(reply)
             print()
