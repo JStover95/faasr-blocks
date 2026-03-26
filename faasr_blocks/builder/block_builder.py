@@ -124,7 +124,6 @@ class BlockBuilder:
         self._retry_tests_once = retry_tests_once
         self._static_validator = StaticValidator(context)
         self._test_runner = TestRunner(context)
-        self._block_validator = BlockValidator()
 
     def _run_source_iteration(
         self,
@@ -157,7 +156,7 @@ class BlockBuilder:
         )
 
         if not last_static.ok:
-            # If static validation failed, re-generate source code with error instructions and exit early
+            # If static validation failed, re-generate source code with error instructions and retry
             self._source_generator.generate(
                 test_src,
                 extra_instructions="Static validation failed:\n" + "\n".join(last_static.errors),
@@ -185,7 +184,7 @@ class BlockBuilder:
             debug_print((last_test.stderr or "")[-2000:])
 
         if not last_test.passed:
-            # If pytest failed, re-generate source code with error instructions and exit early
+            # If pytest failed, re-generate source code with error instructions and retry
             fail_text = (
                 "Pytest failed. Fix implementation only.\n\n"
                 + f"exit_code={last_test.exit_code}\n"
@@ -206,10 +205,10 @@ class BlockBuilder:
             return None, last_test, last_static
 
         # 3. Validate the block's directory structure
-        ok, errors = self._block_validator.validate_structure(block_path)
+        ok, errors = BlockValidator.validate_structure(block_path)
 
         if not ok:
-            # If the block's directory structure is invalid, return an error and exit early
+            # If the block's directory structure is invalid, return a failed build result
             return (
                 BuildResult(
                     success=False,

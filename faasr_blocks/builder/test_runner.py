@@ -35,9 +35,11 @@ class TestRunner:
         Returns:
             TestResult with pass/fail status, exit code, captured output, and summary line.
         """
-        block_path = self._context.block_path
+        # Pull context values
         repo_root = self._context.repo_root
-        tests_dir = block_path / "tests"
+        tests_dir = self._context.tests_dir
+
+        # Validate that the tests directory exists
         if not tests_dir.is_dir():
             return TestResult(
                 passed=False,
@@ -47,6 +49,7 @@ class TestRunner:
                 summary_line=f"tests directory missing: {tests_dir}",
             )
 
+        # Prepare the pytest command and runtime environment
         cmd = [
             sys.executable,
             "-m",
@@ -55,14 +58,16 @@ class TestRunner:
             "-v",
             "--tb=short",
         ]
-        env = dict(**os.environ)
+
         # Ensure repo root imports (e.g. blocks.*) resolve like local pytest.ini pythonpath
+        env = dict(**os.environ)
         existing = env.get("PYTHONPATH", "")
         sep = os.pathsep
         env["PYTHONPATH"] = f"{repo_root}{sep}{existing}" if existing else str(repo_root)
 
         debug_print("pytest cwd=", repo_root, "cmd=", " ".join(cmd))
 
+        # Run pytest
         proc = subprocess.run(
             cmd,
             cwd=repo_root,
@@ -76,6 +81,8 @@ class TestRunner:
         combined = out + "\n" + err
         summary_line = _extract_summary(combined)
         passed = proc.returncode == 0
+
+        # Return the test result
         return TestResult(
             passed=passed,
             exit_code=proc.returncode,

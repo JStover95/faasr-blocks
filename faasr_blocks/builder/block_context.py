@@ -36,9 +36,14 @@ class BlockContext:
         return self.contract.block_name
 
     @property
+    def tests_dir(self) -> Path:
+        """Path to tests directory."""
+        return self.block_path / "tests"
+
+    @property
     def test_path(self) -> Path:
         """Path to primary test file."""
-        return self.block_path / "tests" / f"test_{self.function_name}.py"
+        return self.tests_dir / f"test_{self.function_name}.py"
 
     @property
     def src_file(self) -> Path:
