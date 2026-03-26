@@ -102,9 +102,6 @@ class BlockBuilder:
         test_generator: TestGenerator,
         test_coverage_validator: ContractTestCoverageValidator,
         source_generator: SourceCodeGenerator,
-        static_validator: StaticValidator,
-        test_runner: TestRunner,
-        block_validator: BlockValidator,
         max_source_iterations: int = 3,
         retry_tests_once: bool = True,
     ) -> None:
@@ -116,9 +113,6 @@ class BlockBuilder:
             test_generator: Generates pytest files under the block directory.
             test_coverage_validator: LLM check that tests cover the contract.
             source_generator: Generates implementation under src/.
-            static_validator: AST-level implementation checks.
-            test_runner: Runs pytest for the block.
-            block_validator: Validates on-disk block layout.
             max_source_iterations: Maximum loops for source generation (static validation + pytest).
             retry_tests_once: If True, retry test generation once on coverage validation failure.
         """
@@ -126,11 +120,11 @@ class BlockBuilder:
         self._test_generator = test_generator
         self._test_coverage_validator = test_coverage_validator
         self._source_generator = source_generator
-        self._static_validator = static_validator
-        self._test_runner = test_runner
-        self._block_validator = block_validator
         self._max_source_iterations = max_source_iterations
         self._retry_tests_once = retry_tests_once
+        self._static_validator = StaticValidator()
+        self._test_runner = TestRunner()
+        self._block_validator = BlockValidator()
 
     def _run_source_iteration(
         self,

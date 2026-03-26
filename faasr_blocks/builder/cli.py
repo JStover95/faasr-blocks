@@ -30,12 +30,9 @@ from faasr_blocks.builder.block_builder import BlockBuilder
 from faasr_blocks.builder.config import load_llm_env_config
 from faasr_blocks.builder.llm import OpenAIChatLLM
 from faasr_blocks.builder.source_generator import SourceCodeGenerator
-from faasr_blocks.builder.static_validator import StaticValidator
 from faasr_blocks.builder.test_generator import TestGenerator
-from faasr_blocks.builder.test_runner import TestRunner
 from faasr_blocks.builder.test_validator import ContractTestCoverageValidator
 from faasr_blocks.models.contract import Contract
-from faasr_blocks.validation.block_validator import BlockValidator
 
 
 def _package_repo_root() -> Path:
@@ -110,18 +107,12 @@ def main(argv: list[str] | None = None) -> int:
     test_generator = TestGenerator(llm)
     test_coverage_validator = ContractTestCoverageValidator(llm)
     source_generator = SourceCodeGenerator(llm)
-    static_validator = StaticValidator()
-    test_runner = TestRunner()
-    block_validator = BlockValidator()
 
     builder = BlockBuilder(
         schema_path=schema_path,
         test_generator=test_generator,
         test_coverage_validator=test_coverage_validator,
         source_generator=source_generator,
-        static_validator=static_validator,
-        test_runner=test_runner,
-        block_validator=block_validator,
         max_source_iterations=args.max_source_iterations,
     )
 
