@@ -108,7 +108,20 @@ This is a proof-of-concept implementation focused on:
 - **Phase 1 (Complete)**: Foundation - contracts, test harness, validation
 - **Phase 2 (Complete)**: Block builder - LLM-backed test and source generation, static checks, pytest loop
 - **Phase 3 (Complete)**: Embedding & discovery - semantic search for block reuse
-- **Phase 4 (Planned)**: Main agent & CLI - natural language interface
+- **Phase 4 (In progress)**: Main agent & CLI — interactive shell (`faasr-blocks-agent`); discovery/build wiring planned next
+
+### Phase 4a: Interactive agent shell
+
+Requires the same environment variables as Phases 2 and 3 (OpenAI-compatible chat settings **and** S3 settings are loaded at startup even though this PoC does not call those services yet).
+
+```bash
+faasr-blocks-agent
+# or: python -m faasr_blocks.orchestrator.cli
+```
+
+Options: `--debug` (stderr diagnostics), `--multiline` (Esc+Enter to submit), `--history-file PATH` (prompt history file).
+
+**Manual check:** With env vars set, run `printf '/help\n/quit\n' | faasr-blocks-agent` and confirm help text and clean exit.
 
 ### Phase 2: Building a block from a contract
 
