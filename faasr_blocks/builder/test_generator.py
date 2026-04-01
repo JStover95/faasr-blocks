@@ -26,6 +26,21 @@ Requirements:
   `mock_resp.json.return_value = payload`. If code uses `response.text` / writes `response.text` to a file,
   set `mock_resp.text = json.dumps(payload)` (a real `str`). If you only set `json.return_value` but the
   implementation uses `.text`, tests fail with TypeError (MagicMock is not str).
+
+S3 input data / faasr_get_file and fixtures:
+- The test harness mocks `faasr_get_file` by copying files from `tests/fixtures/`. The mock looks up a path
+  using `remote_file` (and optional `remote_folder`). For a flat remote file `foo.csv`, it expects
+  `tests/fixtures/foo.csv` unless nested under `remote_folder/fixtures/...`.
+- Read `preconditions` and `methodology` together. If they require a specific file (CSV, JSON, etc.) with
+  named columns or fields, you MUST create that file under `tests/fixtures/` with the exact basename the
+  contract implies (or that function arguments will pass to `faasr_get_file`). Populate minimal plausible
+  rows so pandas/json parsing and any \"at least N days/rows\" requirements in preconditions are satisfied.
+- Happy-path tests: ensure every `faasr_get_file` call in the implementation can resolve to a fixture you
+  emitted. Do not emit unrelated fixtures (e.g. only JSON) when preconditions clearly require a CSV with
+  matching columns; the implementation is likely to use that filename.
+- Negative tests may omit fixtures or use wrong paths to assert `FileNotFoundError` or contract errors only
+  when the contract or test intent clearly covers missing data.
+
 - Output ONLY marked files as specified in the user message — no extra commentary outside those sections.
 """
 
@@ -60,10 +75,12 @@ Output format (required). Emit one or more sections exactly like this:
 ```json
 {{}}
 ```
+(or CSV, text, PNG test inputs as required by preconditions — match filenames to what S3 inputs describe)
 
 Use at least:
 - tests/test_{function_name}.py
-- any fixtures your tests need under tests/fixtures/
+- Every S3 input file described in contract preconditions (correct basename under tests/fixtures/), plus any
+  extra fixtures for HTTP mocks or secrets
 
 Do not emit src/ implementation here — tests only.
 """

@@ -101,6 +101,14 @@ For return_type \"None\", the entrypoint returns Python None in the normal sense
 
 Blocks are pure and idempotent. Preconditions/postconditions are happy-path only (PoC). Use PascalCase block_name.
 
+Blocks must be workflow-agnostic: never name a specific upstream block or step in preconditions.
+If the block reads artifacts from S3 via faasr_get_file (or similar), preconditions MUST spell out the data
+contract so tests can create fixtures: exact filename or stable naming convention, file format (CSV, JSON, etc.),
+required fields/columns and types, and any minimum volume (e.g. at least 30 daily rows). Do not rely on vague
+phrases like \"data must be downloaded\" without naming the file and schema. If the caller must choose the
+input filename, add a function argument (e.g. input_csv) and describe the schema in preconditions; if the
+filename is fixed by convention for this block, state that literal name in preconditions.
+
 Contract JSON must conform to this schema (excerpt; honor required fields and types):
 {schema}
 
@@ -125,6 +133,8 @@ Rules:
 - required_secrets: list of secret names or [].
 - conditional_return: null unless return_type is bool; then include description, true_condition, false_condition.
 - dependencies.python_packages: list of {{\"name\",\"version\"}} with concrete pins like \">=2.31.0\".
+- preconditions: for any S3 input the implementation will read, be explicit (filename/pattern, format, schema,
+  minimum records). Keep wording independent of workflow order.
 
 If the user already answered clarifications, prefer emitting contracts over asking again unless still impossible."""
 
