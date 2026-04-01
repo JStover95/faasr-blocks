@@ -46,6 +46,8 @@ def _pytest_remediation_hints(stdout: str) -> str:
             "(import ``json``). Do not use ``response.text`` for this pattern unless you also change tests "
             "to set ``mock_resp.text`` to a JSON string."
         )
+    if "No module named 'faasr_py'" in stdout:
+        return "\n\n[HINT] Pytest shows No module named 'faasr_py'. Ensure the implementation imports FaaSr_py (case sensitive) correctly."
     return ""
 
 

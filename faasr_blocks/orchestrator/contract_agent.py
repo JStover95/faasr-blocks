@@ -92,7 +92,7 @@ Each block is one Python module with a single entrypoint function. Two different
    Derive it from block_name: PascalCase -> snake_case (e.g. DownloadGHCNDData -> download_ghcnd_data,
    GetWeatherData -> get_weather_data). This is NOT a FaaSr API name.
 
-2) FaaSr client stubs — used only inside the implementation (import from FaaSr_py.client.py_client_stubs):
+2) FaaSr client stubs — used only inside the implementation (import from FaaSr_py.client.py_client_stubs) (Case sensitive, FaaSr_py):
    faasr_get_file, faasr_put_file, faasr_delete_file, faasr_log; faasr_secret for required_secrets;
    faasr_return(value: bool) only when function.return_type is \"bool\" (branching).
 

@@ -12,7 +12,7 @@ from faasr_blocks.builder.reference_snippets import default_snippets
 SYSTEM_PROMPT = """You are an expert Python author for FaaSr serverless functions.
 
 Rules:
-- Import FaaSr client stubs from: `from FaaSr_py.client.py_client_stubs import ...`
+- Import FaaSr client stubs from: `from FaaSr_py.client.py_client_stubs import ...` (Case sensitive, FaaSr_py)
   Use only: faasr_get_file, faasr_put_file, faasr_delete_file, faasr_log, faasr_secret,
   faasr_return (when contract return_type is bool), faasr_get_folder_list, faasr_rank,
   faasr_get_s3_creds, faasr_invocation_id, faasr_exit as needed by the contract.
